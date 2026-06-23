@@ -1,8 +1,17 @@
 # ac-cost-web ⚡
 
-App web para calcular el coste del aire acondicionado con precios PVPC reales de ESIOS (REE).
+App web para calcular el coste del aire acondicionado y otros aparatos con precios PVPC reales de ESIOS (REE), temperatura de AEMET y datos reales de Prometheus.
 
-El token de ESIOS se queda en el servidor — nunca llega al navegador.
+---
+
+## Funcionalidades
+
+- **Calculadora** — máquinas AC + aparatos extra con sliders de kW, selector de horas por botón o por franjas con fracciones (08:30–13:45), bono social configurable, desglose hora a hora, curva PVPC con temperatura AEMET superpuesta, exportar PDF
+- **Comparar días** — dos fechas, mismo uso, coste side-by-side con gráfica comparada
+- **Hora óptima** — dado un aparato y una duración, encuentra la ventana de inicio más barata (resolución de 15 min)
+- **Estimación mensual** — patrón de uso semanal (horas/día) + precios medios históricos = coste estimado del mes
+- **Historial** — guarda los últimos 20 cálculos en el navegador (localStorage)
+- **Acumulado real** — conecta con tu Prometheus para ver el coste real acumulado del mes
 
 ---
 
@@ -11,14 +20,22 @@ El token de ESIOS se queda en el servidor — nunca llega al navegador.
 ```bash
 git clone https://github.com/Gabba82/ac-cost-web.git /DATA/AppData/ac-cost-web
 cd /DATA/AppData/ac-cost-web
-
-# Token ESIOS (regístrate gratis en https://api.esios.ree.es/)
-echo "ESIOS_TOKEN=tu_token_aqui" > .env
-
+cp .env.example .env
+# Edita .env con tus tokens
+nano .env
 docker compose up -d --build
 ```
 
-Abre en el navegador: **http://onster:5656** (o la IP de tu máquina)
+Abre en el navegador: **http://onster:5656**
+
+---
+
+## Tokens necesarios
+
+| Token | Dónde obtenerlo | Obligatorio |
+|-------|----------------|-------------|
+| `ESIOS_TOKEN` | https://api.esios.ree.es/ → perfil → Personal token | Sí |
+| `AEMET_TOKEN` | https://opendata.aemet.es/centrodedescargas/altaUsuario | Para temperatura |
 
 ---
 
@@ -32,15 +49,7 @@ docker compose up -d --build
 
 ---
 
-## Uso
-
-1. Selecciona la fecha (los precios del día siguiente se publican ~20:30h)
-2. Pulsa **Cargar precios**
-3. Activa las máquinas que vayas a encender y elige frío/calor
-4. Selecciona las horas de uso (o usa "3 más baratas" para optimizar)
-5. Elige tu descuento de Bono Social si aplica
-
-### Bono Social 2026/2027
+## Bono Social 2026/2027
 
 | Año  | Vulnerable | Vulnerable severo |
 |------|-----------|------------------|
