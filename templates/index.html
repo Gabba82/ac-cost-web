@@ -22,14 +22,14 @@ header h1{font-size:18px;font-weight:600;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;}
 .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.875rem;}
 label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
-input[type=date],input[type=time],input[type=number],select{width:100%;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
+input[type=date],input[type=time],input[type=number],input[type=text],select{width:100%;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
 input:focus,select:focus{border-color:var(--green);}
 button.primary{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--rs);background:var(--green);color:white;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;}
 button.primary:hover{opacity:.85;}button.primary:disabled{opacity:.4;cursor:not-allowed;}
 button.ghost{padding:5px 12px;border-radius:var(--rs);background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .15s;}
 button.ghost:hover{border-color:var(--text);color:var(--text);}
-button.amber{background:var(--amber);color:#1a1200;border:none;padding:9px 20px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;}
-button.amber:hover{opacity:.85;}
+button.danger{padding:5px 12px;border-radius:var(--rs);background:transparent;color:var(--red);border:1px solid var(--red);font-size:12px;cursor:pointer;transition:all .15s;}
+button.danger:hover{background:var(--red);color:white;}
 .machine-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
 .machine-row:last-child{border-bottom:none;}
 .toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
@@ -92,20 +92,29 @@ button.amber:hover{opacity:.85;}
 .compare-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:1rem;}
 .compare-card.winner{border-color:var(--green);}
 .compare-card.loser{opacity:.7;}
-.optimal-result{background:var(--bg3);border:1px solid var(--gdim);border-radius:var(--r);padding:1rem;margin-top:1rem;}
-.optimal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.optimal-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .optimal-row:last-child{border-bottom:none;}
 .optimal-row.best{color:var(--green);font-weight:600;}
-.hist-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.hist-item{display:grid;grid-template-columns:90px 80px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .hist-item:last-child{border-bottom:none;}
-.hist-date{color:var(--muted);font-size:12px;min-width:90px;}
-.hist-cost{font-weight:600;color:var(--green);min-width:70px;}
-.hist-detail{color:var(--muted);font-size:12px;flex:1;}
+.hist-date{color:var(--muted);font-size:12px;}
+.hist-cost{font-weight:600;color:var(--green);}
+.hist-detail{color:var(--muted);font-size:12px;}
 .monthly-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;}
 .monthly-bar-wrap{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
 .monthly-bar{height:100%;background:var(--green);border-radius:4px;transition:width .3s;}
 .monthly-cost{min-width:60px;text-align:right;color:var(--amber);font-weight:600;}
-.prometheus-stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
+.search-results{border:1px solid var(--border);border-radius:var(--rs);margin-top:4px;overflow:hidden;}
+.search-result-item{padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background .12s;}
+.search-result-item:last-child{border-bottom:none;}
+.search-result-item:hover{background:var(--bg3);}
+.search-result-item .mun-id{font-size:11px;color:var(--muted);margin-left:8px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:13px;font-weight:500;}
+.settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gdim);color:var(--green);margin-left:8px;}
+.save-banner{display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:var(--green);color:white;padding:10px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
 </style>
 </head>
@@ -122,23 +131,24 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   <span id="statusText">Cargando precios de hoy...</span>
 </div>
 
-<!-- NAV PRINCIPAL -->
 <div class="nav-tabs">
-  <button class="nav-tab active" onclick="showSection('calc')">Calculadora</button>
-  <button class="nav-tab" onclick="showSection('compare')">Comparar días</button>
-  <button class="nav-tab" onclick="showSection('optimal')">Hora óptima</button>
-  <button class="nav-tab" onclick="showSection('monthly')">Estimación mensual</button>
-  <button class="nav-tab" onclick="showSection('history')">Historial</button>
-  <button class="nav-tab" onclick="showSection('prometheus')">Acumulado real</button>
+  <button class="nav-tab active" onclick="showSection('calc',this)">Calculadora</button>
+  <button class="nav-tab" onclick="showSection('compare',this)">Comparar días</button>
+  <button class="nav-tab" onclick="showSection('optimal',this)">Hora óptima</button>
+  <button class="nav-tab" onclick="showSection('monthly',this)">Estimación mensual</button>
+  <button class="nav-tab" onclick="showSection('history',this)">Historial</button>
+  <button class="nav-tab" onclick="showSection('prometheus',this)">Acumulado real</button>
+  <button class="nav-tab" onclick="showSection('settings',this)">⚙ Ajustes</button>
 </div>
 
-<!-- ══ SECCIÓN: CALCULADORA ══════════════════════════════════════════════ -->
+<!-- ══ CALCULADORA ══ -->
 <div class="section active" id="sec-calc">
   <div class="row2">
     <div><label>Fecha</label><input type="date" id="datePicker"></div>
     <div style="display:flex;align-items:flex-end;gap:8px;">
       <button class="primary" id="loadBtn" onclick="loadPrices()"><span id="loadBtnText">Cargar precios</span></button>
       <button class="ghost" onclick="exportPDF()" title="Exportar PDF">⬇ PDF</button>
+      <button class="ghost" onclick="saveToHistory()" title="Guardar en historial">💾</button>
     </div>
   </div>
 
@@ -186,7 +196,7 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
     <p class="card-title">Bono social</p>
     <select id="bonoSel" onchange="compute()">
       <option value="0">Sin bono social</option>
-      <option value="42.5" selected>42,5% — Vulnerable (2026)</option>
+      <option value="42.5">42,5% — Vulnerable (2026)</option>
       <option value="57.5">57,5% — Vulnerable severo (2026)</option>
       <option value="35">35% — Vulnerable (2027 est.)</option>
       <option value="50">50% — Vulnerable severo (2027 est.)</option>
@@ -203,7 +213,7 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 
   <div class="card" id="desgloseCard" style="display:none;">
-    <p class="card-title">Desglose</p>
+    <p class="card-title">Desglose hora a hora</p>
     <div class="desglose" id="desglose"></div>
   </div>
 
@@ -224,37 +234,38 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
-<!-- ══ SECCIÓN: COMPARAR DÍAS ═══════════════════════════════════════════ -->
+<!-- ══ COMPARAR ══ -->
 <div class="section" id="sec-compare">
   <div class="card">
-    <p class="card-title">Selecciona dos días a comparar</p>
+    <p class="card-title">Selecciona dos días</p>
     <div class="row2">
       <div><label>Día A</label><input type="date" id="cmpDateA"></div>
       <div><label>Día B</label><input type="date" id="cmpDateB"></div>
     </div>
     <button class="primary" onclick="runCompare()"><span id="cmpBtnTxt">Comparar</span></button>
-    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa el mismo uso definido en la calculadora principal.</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa el mismo uso definido en la calculadora.</p>
   </div>
   <div id="compareResult" style="display:none;">
     <div class="compare-grid" id="compareCards"></div>
-    <div class="card" style="margin-top:12px;">
+    <div id="compareSavings" style="margin:8px 0;font-size:13px;color:var(--green);"></div>
+    <div class="card">
       <p class="card-title">Curva de precios comparada</p>
-      <div style="position:relative;height:200px;"><canvas id="compareChart" role="img" aria-label="Comparación de precios">Comparación de precios PVPC.</canvas></div>
+      <div style="position:relative;height:200px;"><canvas id="compareChart" role="img" aria-label="Comparación de precios">Comparación PVPC.</canvas></div>
     </div>
   </div>
 </div>
 
-<!-- ══ SECCIÓN: HORA ÓPTIMA ══════════════════════════════════════════════ -->
+<!-- ══ HORA ÓPTIMA ══ -->
 <div class="section" id="sec-optimal">
   <div class="card">
     <p class="card-title">Configuración</p>
     <div class="row3">
       <div><label>Fecha</label><input type="date" id="optDate"></div>
       <div><label>Duración (horas)</label><input type="number" id="optDuration" value="2" min="0.25" max="24" step="0.25"></div>
-      <div><label>Número de resultados</label><input type="number" id="optTop" value="5" min="1" max="10" step="1"></div>
+      <div><label>Número de resultados</label><input type="number" id="optTop" value="5" min="1" max="10"></div>
     </div>
     <button class="primary" onclick="runOptimal()"><span id="optBtnTxt">Calcular hora óptima</span></button>
-    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa los aparatos activos en la calculadora principal. Encuentra la ventana de inicio más barata.</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa los aparatos activos en la calculadora. Resolución de 15 minutos.</p>
   </div>
   <div id="optimalResult" style="display:none;" class="card">
     <p class="card-title">Mejores horas de inicio <span id="optKwLabel" style="font-weight:400;text-transform:none;color:var(--muted);"></span></p>
@@ -262,11 +273,11 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
-<!-- ══ SECCIÓN: ESTIMACIÓN MENSUAL ══════════════════════════════════════ -->
+<!-- ══ ESTIMACIÓN MENSUAL ══ -->
 <div class="section" id="sec-monthly">
   <div class="card">
     <p class="card-title">Patrón semanal de uso</p>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Define cuántas horas usas los aparatos activos cada día de la semana. Se multiplica por las semanas del mes y el precio medio histórico de cada día.</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Horas de uso por día. Se calcula con el precio medio real de las últimas 4 semanas de ESIOS.</p>
     <div id="weekPattern"></div>
     <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="primary" onclick="runMonthly()"><span id="mthBtnTxt">Estimar coste mensual</span></button>
@@ -286,43 +297,80 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
-<!-- ══ SECCIÓN: HISTORIAL ════════════════════════════════════════════════ -->
+<!-- ══ HISTORIAL ══ -->
 <div class="section" id="sec-history">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
-      <p class="card-title" style="margin:0;">Últimos cálculos guardados</p>
-      <button class="ghost" onclick="clearHistory()">Limpiar todo</button>
+      <p class="card-title" style="margin:0;">Historial de cálculos <span class="tag" id="histCount">0</span></p>
+      <button class="danger" onclick="clearHistory()">Limpiar todo</button>
     </div>
-    <div id="historyList"><p style="font-size:13px;color:var(--muted);">Aún no hay cálculos guardados. Usa la calculadora y pulsa "Guardar en historial".</p></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Los cálculos se guardan en el servidor y son accesibles desde cualquier dispositivo en tu red.</p>
+    <div id="historyList"><p style="font-size:13px;color:var(--muted);">Cargando historial...</p></div>
   </div>
 </div>
 
-<!-- ══ SECCIÓN: PROMETHEUS ═══════════════════════════════════════════════ -->
+<!-- ══ PROMETHEUS ══ -->
 <div class="section" id="sec-prometheus">
   <div class="card">
-    <p class="card-title">Conexión a Prometheus</p>
-    <div class="row2">
-      <div><label>URL de Prometheus</label><input type="text" id="promUrl" value="http://onster:9090" placeholder="http://onster:9090"></div>
-      <div style="display:flex;align-items:flex-end;gap:8px;">
-        <button class="primary" onclick="loadPrometheus()"><span id="promBtnTxt">Cargar datos</span></button>
-      </div>
-    </div>
+    <p class="card-title">Acumulado real (Prometheus)</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Conecta con tu instancia de Prometheus para ver el coste real acumulado del mes según el ac-cost-exporter.</p>
+    <button class="primary" onclick="loadPrometheus()"><span id="promBtnTxt">Cargar datos</span></button>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;">URL configurada en Ajustes: <span id="promUrlLabel" style="color:var(--amber);">—</span></p>
   </div>
   <div id="prometheusResult" style="display:none;" class="card">
-    <p class="card-title">Acumulado real del mes</p>
-    <div class="prometheus-stat">
-      <div class="metric hl-amber"><p class="metric-label">Coste acumulado mes</p><p class="metric-value" id="promMonthly">—</p><p class="metric-sub" id="promMonth">—</p></div>
+    <p class="card-title">Datos en tiempo real</p>
+    <div class="metrics">
+      <div class="metric hl-amber"><p class="metric-label">Acumulado mes</p><p class="metric-value" id="promMonthly">—</p><p class="metric-sub" id="promMonth">—</p></div>
       <div class="metric hl"><p class="metric-label">Acumulado hoy</p><p class="metric-value" id="promToday">—</p><p class="metric-sub">según exporter</p></div>
+      <div class="metric"><p class="metric-label">Precio PVPC ahora</p><p class="metric-value" id="promPvpc">—</p><p class="metric-sub">€/kWh</p></div>
+      <div class="metric"><p class="metric-label">Con bono social</p><p class="metric-value" id="promWithBono">—</p><p class="metric-sub" id="promBonoPct">—</p></div>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:.5rem;">Datos obtenidos de tu exporter ac-cost-exporter vía Prometheus. El cálculo mensual usa la métrica ac_total_cost_eur_hour integrada en el tiempo.</p>
   </div>
 </div>
 
+<!-- ══ AJUSTES ══ -->
+<div class="section" id="sec-settings">
+  <div class="card">
+    <p class="card-title">Municipio AEMET</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Busca tu municipio por nombre para obtener la temperatura horaria correcta.</p>
+    <div style="position:relative;">
+      <input type="text" id="munSearch" placeholder="Escribe el nombre del municipio..." oninput="searchMunicipio(this.value)">
+      <div id="munResults" class="search-results" style="display:none;position:absolute;width:100%;z-index:10;background:var(--bg2);"></div>
+    </div>
+    <p style="font-size:13px;margin-top:10px;">Municipio actual: <strong id="munActual" style="color:var(--green);">—</strong> <span id="munCodigo" style="color:var(--muted);font-size:12px;"></span></p>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Bono social por defecto</p>
+    <select id="settingsBonoSel">
+      <option value="0">Sin bono social</option>
+      <option value="42.5">42,5% — Vulnerable (2026)</option>
+      <option value="57.5">57,5% — Vulnerable severo (2026)</option>
+      <option value="35">35% — Vulnerable (2027 est.)</option>
+      <option value="50">50% — Vulnerable severo (2027 est.)</option>
+      <option value="100">100% — Riesgo exclusión social</option>
+    </select>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Se aplicará automáticamente al cargar la aplicación.</p>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Prometheus</p>
+    <label>URL de Prometheus</label>
+    <input type="text" id="settingsPromUrl" placeholder="http://observatorio-prometheus:9090">
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Nombre del contenedor Docker en la red interna.</p>
+  </div>
+
+  <button class="primary" onclick="saveSettings()"><span id="settingsBtnTxt">Guardar ajustes</span></button>
+</div>
+
+<div class="save-banner" id="saveBanner">✅ Ajustes guardados</div>
 <footer>Precios: ESIOS · REE · Temperatura: AEMET · Gabba82/ac-cost-web</footer>
 </div>
 
 <script>
 const MACHINES = {{ machines | tojson }};
+const INIT_SETTINGS = {{ settings | tojson }};
+
 const state = {};
 MACHINES.forEach(m => state[m.id] = {active:false, mode:'frio'});
 
@@ -342,21 +390,26 @@ EXTRAS.forEach(e => extraState[e.id] = {active:false, kw:e.def});
 
 let prices={}, temps={}, selHrs=new Set(), franjas=[], activeTab='botones';
 let chartObj=null, compareChartObj=null, showTemp=false, franjaId=0;
+let settings = {...INIT_SETTINGS};
+let munSearchTimer = null;
 
 const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 let weekHours = [8,8,8,8,8,6,6];
 
-function fmt(n,d){ return n.toFixed(d).replace('.',','); }
+function fmt(n,d){ return typeof n==='number' ? n.toFixed(d).replace('.',',') : '—'; }
 function fmtH(h){ return String(h).padStart(2,'0')+'h'; }
+function spin(txt){ return `<span class="spinner"></span> ${txt}`; }
 
 /* ── NAV ── */
-function showSection(id){
+function showSection(id, btn){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');
-  event.target.classList.add('active');
-  if(id==='history') renderHistory();
-  if(id==='optimal'){ document.getElementById('optDate').value=document.getElementById('datePicker').value; }
+  if(btn) btn.classList.add('active');
+  if(id==='history') loadHistory();
+  if(id==='settings') loadSettingsUI();
+  if(id==='prometheus') document.getElementById('promUrlLabel').textContent=settings.prometheus_url||'—';
+  if(id==='optimal') document.getElementById('optDate').value=document.getElementById('datePicker').value;
   if(id==='compare'){
     const d=document.getElementById('datePicker').value;
     const d2=new Date(d); d2.setDate(d2.getDate()+1);
@@ -369,9 +422,15 @@ function showSection(id){
 const today=new Date().toISOString().slice(0,10);
 document.getElementById('datePicker').value=today;
 document.getElementById('optDate').value=today;
-buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
 
-/* ── PESTAÑAS HORAS ── */
+// Aplicar bono social por defecto
+const bonoSel=document.getElementById('bonoSel');
+bonoSel.value=String(settings.bono_social_pct||42.5);
+
+buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
+loadPrices();
+
+/* ── PESTAÑAS ── */
 function switchTab(t){
   activeTab=t;
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['botones','franjas'][i]===t));
@@ -444,7 +503,7 @@ function addFranja(d='08:00',h='14:00'){franjas.push({id:franjaId++,desde:d,hast
 function removeFranja(id){franjas=franjas.filter(f=>f.id!==id);buildFranjas();compute();}
 function buildFranjas(){
   const el=document.getElementById('franjaList'); el.innerHTML='';
-  if(!franjas.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);padding:8px 0;">Pulsa "+ Añadir franja" para definir un periodo.</p>';document.getElementById('franjaRes').innerHTML='';return;}
+  if(!franjas.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);padding:8px 0;">Pulsa "+ Añadir franja".</p>';document.getElementById('franjaRes').innerHTML='';return;}
   franjas.forEach(f=>{
     const r=document.createElement('div'); r.className='franja-row';
     r.innerHTML=`<div><p class="franja-label">Desde</p><input type="time" value="${f.desde}" step="900" onchange="updateFranja(${f.id},'desde',this.value)"></div>
@@ -462,14 +521,14 @@ function updateFranjaRes(){
   document.getElementById('franjaRes').innerHTML=lines.join(' · ')+` · Total: <span>${fmt(tot,2)} h</span>`;
 }
 
-/* ── CÁLCULO PRINCIPAL ── */
+/* ── CÁLCULO ── */
 function kwTotal(){
   return MACHINES.filter(m=>state[m.id].active).reduce((s,m)=>s+(state[m.id].mode==='frio'?m.kw_frio:m.kw_calor),0)
        + EXTRAS.filter(e=>extraState[e.id].active).reduce((s,e)=>s+extraState[e.id].kw,0);
 }
 function costSegmento(d,h,kw){
-  if(h<=d||kw===0) return {coste:0,kwh:0,tramos:[]};
-  const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  if(h<=d||kw===0) return{coste:0,kwh:0,tramos:[]};
+  const avg=avgPrice();
   let coste=0,kwh=0,tramos=[];
   for(let i=Math.floor(d);i<Math.ceil(h);i++){
     const ini=Math.max(d,i),fin=Math.min(h,i+1),frac=fin-ini,p=prices[i]??avg;
@@ -477,18 +536,22 @@ function costSegmento(d,h,kw){
   }
   return{coste,kwh,tramos};
 }
+function avgPrice(){
+  const v=Object.values(prices);
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:0.15;
+}
 function compute(){
   const bono=parseFloat(document.getElementById('bonoSel').value)||0;
   const kw=kwTotal();
   const acAct=MACHINES.filter(m=>state[m.id].active);
   const exAct=EXTRAS.filter(e=>extraState[e.id].active);
-  const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  const avg=avgPrice();
   let bruto=0,kwh=0,parts=[];
 
   if(activeTab==='botones'){
     const hrs=[...selHrs].sort((a,b)=>a-b);
     hrs.forEach(h=>{const p=prices[h]??avg;bruto+=kw*p;kwh+=kw;parts.push({label:fmtH(h),coste:kw*p,precio:p});});
-    document.getElementById('mInfo').textContent=`${hrs.length}h completas · ${acAct.length+exAct.length} aparatos`;
+    document.getElementById('mInfo').textContent=`${hrs.length}h · ${acAct.length+exAct.length} aparatos`;
   } else {
     const seen=new Set();
     franjas.forEach(f=>{
@@ -522,28 +585,24 @@ function compute(){
   updateChart();
 }
 
-/* ── GRÁFICA PRINCIPAL ── */
+/* ── GRÁFICA ── */
 function updateChart(){
   const labels=Array.from({length:24},(_,i)=>fmtH(i));
   const data=labels.map((_,i)=>prices[i]!==undefined?+(prices[i]*1000).toFixed(2):null);
   const isActive=i=>activeTab==='botones'?selHrs.has(i):franjas.some(f=>{const d=timeToH(f.desde),h=timeToH(f.hasta);return h>d&&i<h&&i+1>d;});
   const colors=labels.map((_,i)=>isActive(i)?'#1D9E75':'#378ADD');
   const datasets=[{label:'€/MWh',data,backgroundColor:colors,borderRadius:3,borderSkipped:false,yAxisID:'y'}];
-  if(showTemp&&Object.keys(temps).length){
+  if(showTemp&&Object.keys(temps).length)
     datasets.push({label:'°C',data:labels.map((_,i)=>temps[i]??null),type:'line',borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,.1)',borderWidth:2,pointRadius:3,fill:true,yAxisID:'y2',tension:.3});
-  }
-  if(chartObj) chartObj.destroy();
   const scales={
     x:{ticks:{color:'#8b92a5',font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:12},grid:{color:'rgba(255,255,255,.04)'}},
     y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>fmt(v,2)+'€'},grid:{color:'rgba(255,255,255,.04)'}},
   };
   if(showTemp) scales.y2={position:'right',ticks:{color:'#EF9F27',font:{size:10},callback:v=>v+'°'},grid:{display:false}};
-  chartObj=new Chart(document.getElementById('chart'),{
-    type:'bar',data:{labels,datasets},
+  if(chartObj) chartObj.destroy();
+  chartObj=new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,2)} ${c.dataset.label}`}}},
-      scales}
-  });
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,2)} ${c.dataset.label}`}}},scales}});
 }
 
 /* ── TEMPERATURA AEMET ── */
@@ -557,7 +616,7 @@ async function toggleTemp(){
     try{
       const r=await fetch(`/api/temperature?date=${date}`);
       const d=await r.json();
-      if(r.ok){temps=d.temps;st.textContent=`Temp. ${date}: mín ${fmt(d.min,1)}°C · máx ${fmt(d.max,1)}°C (AEMET)`;}
+      if(r.ok){temps=d.temps;st.textContent=`Temp. ${settings.aemet_municipio_nombre||'municipio'}: mín ${fmt(d.min,1)}°C · máx ${fmt(d.max,1)}°C`;}
       else{st.textContent='⚠ '+d.error;showTemp=false;document.getElementById('tempLegend').style.display='none';}
     }catch(e){st.textContent='Error AEMET: '+e.message;showTemp=false;}
   }
@@ -568,49 +627,42 @@ async function toggleTemp(){
 async function loadPrices(dateVal){
   const date=dateVal||document.getElementById('datePicker').value;
   const btn=document.getElementById('loadBtn'),txt=document.getElementById('loadBtnText');
-  btn.disabled=true;txt.innerHTML='<span class="spinner"></span> Cargando...';
+  if(btn){btn.disabled=true;txt.innerHTML=spin('Cargando...');}
   setStatus('warn','Consultando ESIOS...');
   try{
     const r=await fetch(`/api/prices?date=${date}`);
     const d=await r.json();
-    if(!r.ok){setStatus('err',d.error||'Error');return null;}
+    if(!r.ok){setStatus('err',d.error||'Error ESIOS');return null;}
     prices={};Object.entries(d.hours).forEach(([h,p])=>prices[+h]=p);
-    temps={};showTemp=false;document.getElementById('tempLegend').style.display='none';
-    const s=document.getElementById('tempStatus');if(s)s.style.display='none';
+    temps={};showTemp=false;
+    document.getElementById('tempLegend').style.display='none';
+    const ts=document.getElementById('tempStatus');if(ts)ts.style.display='none';
     setStatus('ok',`${Object.keys(prices).length} horas · media ${fmt(d.avg*1000,2)} · mín ${fmt(d.min*1000,2)} (${fmtH(d.min_h)}) · máx ${fmt(d.max*1000,2)} (${fmtH(d.max_h)}) €/MWh`);
     document.getElementById('chartDate').textContent=date;
     buildHours();compute();
     return d;
   }catch(e){setStatus('err','Error: '+e.message);return null;}
-  finally{btn.disabled=false;txt.textContent='Cargar precios';}
+  finally{if(btn){btn.disabled=false;txt.textContent='Cargar precios';}}
 }
 function setStatus(t,m){document.getElementById('statusDot').className='dot dot-'+t;document.getElementById('statusText').textContent=m;}
-document.getElementById('datePicker').addEventListener('change',()=>{loadPrices();});
-loadPrices();
+document.getElementById('datePicker').addEventListener('change',()=>loadPrices());
 
-/* ── COMPARAR DÍAS ── */
+/* ── COMPARAR ── */
 async function runCompare(){
   const dA=document.getElementById('cmpDateA').value, dB=document.getElementById('cmpDateB').value;
   if(!dA||!dB) return;
-  const btn=document.getElementById('cmpBtnTxt');
-  btn.innerHTML='<span class="spinner"></span>';
+  const btn=document.getElementById('cmpBtnTxt'); btn.innerHTML=spin('');
   try{
     const [rA,rB]=await Promise.all([fetch(`/api/prices?date=${dA}`),fetch(`/api/prices?date=${dB}`)]);
     const [dDataA,dDataB]=await Promise.all([rA.json(),rB.json()]);
-    if(!rA.ok||!rB.ok){alert('Error cargando precios');return;}
-
+    if(!rA.ok||!rB.ok){alert((!rA.ok?dDataA:dDataB).error);return;}
     const bono=parseFloat(document.getElementById('bonoSel').value)||0;
     const kw=kwTotal();
-    const calcCost=(hours,priceMap)=>{
-      const avg=Object.values(priceMap).reduce((a,b)=>a+b,0)/Object.keys(priceMap).length;
-      return [...selHrs].reduce((s,h)=>s+kw*(priceMap[h]??avg),0);
-    };
     const pA={},pB={};
     Object.entries(dDataA.hours).forEach(([h,p])=>pA[+h]=p);
     Object.entries(dDataB.hours).forEach(([h,p])=>pB[+h]=p);
-    const cA=calcCost(selHrs,pA), cB=calcCost(selHrs,pB);
-    const winner=cA<=cB?'A':'B';
-
+    const calcCost=(pm)=>{const avg=Object.values(pm).reduce((a,b)=>a+b,0)/Object.keys(pm).length;return [...selHrs].reduce((s,h)=>s+kw*(pm[h]??avg),0);};
+    const cA=calcCost(pA), cB=calcCost(pB), winner=cA<=cB?'A':'B';
     const cards=document.getElementById('compareCards'); cards.innerHTML='';
     [[dA,pA,cA,'A'],[dB,pB,cB,'B']].forEach(([date,pm,cost,id])=>{
       const isW=id===winner;
@@ -622,22 +674,17 @@ async function runCompare(){
         <p style="font-size:12px;color:var(--muted);">media ${fmt(Object.values(pm).reduce((a,b)=>a+b,0)/Object.keys(pm).length*1000,2)} €/MWh</p>`;
       cards.appendChild(div);
     });
-
-    if(winner==='A') cards.insertAdjacentHTML('afterend',`<p style="font-size:13px;color:var(--green);margin-top:8px;margin-bottom:8px;">Ahorro eligiendo ${dA}: ${fmt(Math.abs(cA-cB),3)} €</p>`);
-    else cards.insertAdjacentHTML('afterend',`<p style="font-size:13px;color:var(--green);margin-top:8px;margin-bottom:8px;">Ahorro eligiendo ${dB}: ${fmt(Math.abs(cA-cB),3)} €</p>`);
-
+    document.getElementById('compareSavings').textContent=`Ahorro eligiendo el día más barato: ${fmt(Math.abs(cA-cB),3)} €`;
     const labels=Array.from({length:24},(_,i)=>fmtH(i));
     if(compareChartObj) compareChartObj.destroy();
-    compareChartObj=new Chart(document.getElementById('compareChart'),{
-      type:'line',
+    compareChartObj=new Chart(document.getElementById('compareChart'),{type:'line',
       data:{labels,datasets:[
         {label:dA,data:labels.map((_,i)=>pA[i]!==undefined?+(pA[i]*1000).toFixed(2):null),borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.1)',borderWidth:2,tension:.3,fill:true},
         {label:dB,data:labels.map((_,i)=>pB[i]!==undefined?+(pB[i]*1000).toFixed(2):null),borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,.1)',borderWidth:2,tension:.3,fill:true},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:true,labels:{color:'#8b92a5',font:{size:11}}}},
-        scales:{x:{ticks:{color:'#8b92a5',font:{size:10}}},y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>v+'€'}}}}
-    });
+        scales:{x:{ticks:{color:'#8b92a5',font:{size:10}}},y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>v+'€'}}}}});
     document.getElementById('compareResult').style.display='block';
   }finally{btn.textContent='Comparar';}
 }
@@ -649,7 +696,7 @@ async function runOptimal(){
   const top=parseInt(document.getElementById('optTop').value)||5;
   const kw=kwTotal();
   if(!kw){alert('Activa al menos un aparato en la calculadora.');return;}
-  const btn=document.getElementById('optBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  const btn=document.getElementById('optBtnTxt'); btn.innerHTML=spin('');
   try{
     let priceMap=prices;
     if(date!==document.getElementById('datePicker').value){
@@ -660,45 +707,38 @@ async function runOptimal(){
     }
     const avg=Object.values(priceMap).reduce((a,b)=>a+b,0)/Object.keys(priceMap).length;
     const results=[];
-    const step=0.25;
-    for(let start=0;start<=24-dur;start+=step){
-      const {coste,kwh}=costSegmento2(start,start+dur,kw,priceMap,avg);
+    for(let start=0;start<=24-dur;start+=0.25){
+      let coste=0,kwh=0;
+      for(let i=Math.floor(start);i<Math.ceil(start+dur);i++){
+        const ini=Math.max(start,i),fin=Math.min(start+dur,i+1),frac=fin-ini,p=priceMap[i]??avg;
+        coste+=kw*p*frac;kwh+=kw*frac;
+      }
       results.push({start,end:start+dur,coste,kwh});
     }
     results.sort((a,b)=>a.coste-b.coste);
     const bono=parseFloat(document.getElementById('bonoSel').value)||0;
-    const rows=document.getElementById('optimalRows');rows.innerHTML='';
+    const rows=document.getElementById('optimalRows'); rows.innerHTML='';
     document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h`;
     results.slice(0,top).forEach((r,i)=>{
-      const hI=Math.floor(r.start),mI=Math.round((r.start%1)*60);
-      const hF=Math.floor(r.end),mF=Math.round((r.end%1)*60);
-      const tI=`${String(hI).padStart(2,'0')}:${String(mI).padStart(2,'0')}`;
-      const tF=`${String(hF).padStart(2,'0')}:${String(mF).padStart(2,'0')}`;
+      const tI=`${String(Math.floor(r.start)).padStart(2,'0')}:${String(Math.round((r.start%1)*60)).padStart(2,'0')}`;
+      const tF=`${String(Math.floor(r.end)).padStart(2,'0')}:${String(Math.round((r.end%1)*60)).padStart(2,'0')}`;
       const div=document.createElement('div');div.className='optimal-row'+(i===0?' best':'');
-      div.innerHTML=`<span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${tI} → ${tF}</span>
-        <span>${fmt(r.coste,3)} € bruto · ${fmt(r.coste*(1-bono/100),3)} € con bono</span>
+      div.innerHTML=`<span>${['🥇','🥈','🥉','4º','5º','6º','7º','8º','9º','10º'][i]} ${tI} → ${tF}</span>
+        <span>${fmt(r.coste,3)} € · con bono: ${fmt(r.coste*(1-bono/100),3)} €</span>
         <span style="color:var(--muted);font-size:12px;">${fmt(r.kwh,2)} kWh</span>`;
       rows.appendChild(div);
     });
     document.getElementById('optimalResult').style.display='block';
   }finally{btn.textContent='Calcular hora óptima';}
 }
-function costSegmento2(d,h,kw,priceMap,avg){
-  let coste=0,kwh=0;
-  for(let i=Math.floor(d);i<Math.ceil(h);i++){
-    const ini=Math.max(d,i),fin=Math.min(h,i+1),frac=fin-ini,p=priceMap[i]??avg;
-    coste+=kw*p*frac;kwh+=kw*frac;
-  }
-  return{coste,kwh};
-}
 
 /* ── ESTIMACIÓN MENSUAL ── */
 function buildWeekPattern(){
-  const el=document.getElementById('weekPattern');el.innerHTML='';
+  const el=document.getElementById('weekPattern'); el.innerHTML='';
   DAYS.forEach((d,i)=>{
-    const row=document.createElement('div');row.className='monthly-day';
+    const row=document.createElement('div'); row.className='monthly-day';
     row.innerHTML=`<span style="min-width:90px;font-size:13px;color:var(--muted);">${d}</span>
-      <input type="range" min="0" max="24" step="0.5" value="${weekHours[i]}" style="flex:1;accent-color:var(--green);" oninput="weekHours[${i}]=parseFloat(this.value);document.getElementById('wh${i}').textContent=fmt(this.value*1,1)+' h';">
+      <input type="range" min="0" max="24" step="0.5" value="${weekHours[i]}" style="flex:1;accent-color:var(--green);" oninput="weekHours[${i}]=parseFloat(this.value);document.getElementById('wh${i}').textContent=fmt(parseFloat(this.value),1)+' h';">
       <span id="wh${i}" style="min-width:40px;text-align:right;font-size:13px;color:var(--green);font-weight:600;">${fmt(weekHours[i],1)} h</span>`;
     el.appendChild(row);
   });
@@ -708,21 +748,17 @@ function setWeekPattern(h){weekHours=weekHours.map(()=>h);buildWeekPattern();}
 async function runMonthly(){
   const kw=kwTotal();
   if(!kw){alert('Activa al menos un aparato.');return;}
-  const btn=document.getElementById('mthBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  const btn=document.getElementById('mthBtnTxt'); btn.innerHTML=spin('');
   try{
     const r=await fetch('/api/prices/weekly-avg');
     const d=await r.json();
-    if(r.ok===false||d.error){alert(d.error||'Error');return;}
-
+    if(d.error){alert(d.error);return;}
     const bono=parseFloat(document.getElementById('bonoSel').value)||0;
-    const now=new Date(), year=now.getFullYear(), month=now.getMonth();
+    const now=new Date(),year=now.getFullYear(),month=now.getMonth();
     const daysInMonth=new Date(year,month+1,0).getDate();
-    let totalBruto=0,totalKwh=0;
-    const dayResults=[];
-
+    let totalBruto=0,totalKwh=0; const dayResults=[];
     for(let day=1;day<=daysInMonth;day++){
-      const dt=new Date(year,month,day);
-      const dow=dt.getDay()===0?6:dt.getDay()-1;
+      const dt=new Date(year,month,day),dow=dt.getDay()===0?6:dt.getDay()-1;
       const hrs=weekHours[dow];
       const avgPrices=d[dow]||{};
       const avg=Object.keys(avgPrices).length?Object.values(avgPrices).reduce((a,b)=>a+b,0)/Object.keys(avgPrices).length:0.15;
@@ -730,19 +766,17 @@ async function runMonthly(){
       totalBruto+=cost;totalKwh+=kw*hrs;
       dayResults.push({day,dow,hrs,cost,avg});
     }
-
     const maxCost=Math.max(...dayResults.map(x=>x.cost));
     document.getElementById('mthBruto').textContent=fmt(totalBruto,2)+' €';
     document.getElementById('mthFinal').textContent=fmt(totalBruto*(1-bono/100),2)+' €';
-    document.getElementById('mthBonoPct').textContent=bono>0?bono+'% bono social':'sin descuento';
+    document.getElementById('mthBonoPct').textContent=bono>0?bono+'% bono':'sin descuento';
     document.getElementById('mthKwh').textContent=fmt(totalKwh,1)+' kWh';
     document.getElementById('mthDaily').textContent=fmt(totalBruto/daysInMonth,3)+' €';
-
-    const el=document.getElementById('monthlyDays');el.innerHTML='';
+    const el=document.getElementById('monthlyDays'); el.innerHTML='';
     dayResults.forEach(r=>{
       const w=maxCost>0?Math.round(r.cost/maxCost*100):0;
-      const div=document.createElement('div');div.className='monthly-day';
-      div.innerHTML=`<span style="min-width:70px;font-size:12px;color:var(--muted);">${r.day}/${(month+1).toString().padStart(2,'0')} ${DAYS[r.dow].slice(0,3)}</span>
+      const div=document.createElement('div'); div.className='monthly-day';
+      div.innerHTML=`<span style="min-width:70px;font-size:12px;color:var(--muted);">${r.day}/${String(month+1).padStart(2,'0')} ${DAYS[r.dow].slice(0,3)}</span>
         <div class="monthly-bar-wrap"><div class="monthly-bar" style="width:${w}%;"></div></div>
         <span class="monthly-cost">${fmt(r.cost,3)} €</span>
         <span style="font-size:11px;color:var(--muted);min-width:30px;">${fmt(r.hrs,1)}h</span>`;
@@ -752,83 +786,167 @@ async function runMonthly(){
   }finally{btn.textContent='Estimar coste mensual';}
 }
 
+/* ── HISTORIAL (servidor) ── */
+async function loadHistory(){
+  const el=document.getElementById('historyList');
+  el.innerHTML='<p style="font-size:13px;color:var(--muted);">Cargando...</p>';
+  try{
+    const r=await fetch('/api/history');
+    const hist=await r.json();
+    document.getElementById('histCount').textContent=hist.length;
+    if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">No hay cálculos guardados aún. Usa el botón 💾 en la calculadora.</p>';return;}
+    el.innerHTML='';
+    hist.forEach((h,i)=>{
+      const div=document.createElement('div'); div.className='hist-item';
+      const ts=h.ts?new Date(h.ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      div.innerHTML=`<span class="hist-date">${h.date||'—'}<br><span style="font-size:10px;">${ts}</span></span>
+        <span class="hist-cost">${fmt(h.final,3)} €</span>
+        <span class="hist-detail">${fmt(h.bruto,3)} € bruto · ${h.bono||0}% bono · ${fmt(h.kw,2)} kW · ${h.hrs||'—'}</span>
+        <button class="btn-rm" onclick="deleteHistEntry(${i})">×</button>`;
+      el.appendChild(div);
+    });
+  }catch(e){el.innerHTML=`<p style="font-size:13px;color:var(--red);">Error cargando historial: ${e.message}</p>`;}
+}
+async function saveToHistory(){
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const kw=kwTotal();
+  const avg=avgPrice();
+  let bruto=0;
+  if(activeTab==='botones'){[...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);});}
+  else{franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});}
+  if(bruto===0){alert('No hay nada que guardar. Selecciona horas y aparatos primero.');return;}
+  const hrsLabel=activeTab==='botones'?`${selHrs.size}h`:`${franjas.length} franja${franjas.length!==1?'s':''}`;
+  const entry={date:document.getElementById('datePicker').value,bruto,final:bruto*(1-bono/100),bono,kw,hrs:hrsLabel};
+  try{
+    await fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});
+    showBanner('💾 Guardado en historial');
+  }catch(e){alert('Error guardando: '+e.message);}
+}
+async function deleteHistEntry(i){
+  await fetch(`/api/history/${i}`,{method:'DELETE'});
+  loadHistory();
+}
+async function clearHistory(){
+  if(!confirm('¿Borrar todo el historial?')) return;
+  await fetch('/api/history',{method:'DELETE'});
+  loadHistory();
+}
+
 /* ── PROMETHEUS ── */
 async function loadPrometheus(){
-  const url=document.getElementById('promUrl').value.trim();
-  const btn=document.getElementById('promBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  const btn=document.getElementById('promBtnTxt'); btn.innerHTML=spin('');
   try{
-    const r=await fetch(`/api/prometheus/monthly?url=${encodeURIComponent(url)}`);
+    const r=await fetch('/api/prometheus/monthly');
     const d=await r.json();
-    if(!r.ok){alert(d.error);return;}
+    if(d.error){alert(d.error);return;}
+    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
     document.getElementById('promMonthly').textContent=fmt(d.monthly_eur,3)+' €';
     document.getElementById('promToday').textContent=fmt(d.today_eur,3)+' €';
+    document.getElementById('promPvpc').textContent=fmt(d.pvpc_now,4)+' €/kWh';
+    document.getElementById('promWithBono').textContent=fmt(d.monthly_eur*(1-bono/100),3)+' €';
+    document.getElementById('promBonoPct').textContent=bono>0?bono+'% bono social':'sin descuento';
     document.getElementById('promMonth').textContent=d.month;
     document.getElementById('prometheusResult').style.display='block';
-  }catch(e){alert('Error conectando a Prometheus: '+e.message);}
+  }catch(e){alert('Error: '+e.message);}
   finally{btn.textContent='Cargar datos';}
 }
 
-/* ── HISTORIAL ── */
-function saveToHistory(){
-  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
-  const kw=kwTotal();const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
-  let bruto=0;
-  if(activeTab==='botones'){ [...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);}); }
-  else{ franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;}); }
-  if(bruto===0){alert('No hay nada que guardar.');return;}
-  const hist=JSON.parse(localStorage.getItem('acHist')||'[]');
-  hist.unshift({date:document.getElementById('datePicker').value,bruto,final:bruto*(1-bono/100),bono,kw,ts:Date.now(),hrs:activeTab==='botones'?[...selHrs].length:franjas.length+' franjas'});
-  localStorage.setItem('acHist',JSON.stringify(hist.slice(0,20)));
-  renderHistory();
-  alert('Guardado en historial ✅');
+/* ── AJUSTES ── */
+function loadSettingsUI(){
+  document.getElementById('munActual').textContent=settings.aemet_municipio_nombre||'—';
+  document.getElementById('munCodigo').textContent=settings.aemet_municipio?`(código: ${settings.aemet_municipio})`:'';
+  document.getElementById('settingsBonoSel').value=String(settings.bono_social_pct||42.5);
+  document.getElementById('settingsPromUrl').value=settings.prometheus_url||'';
 }
-function renderHistory(){
-  const hist=JSON.parse(localStorage.getItem('acHist')||'[]');
-  const el=document.getElementById('historyList');
-  if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">Aún no hay cálculos guardados.</p>';return;}
-  el.innerHTML='';
-  hist.forEach((h,i)=>{
-    const div=document.createElement('div');div.className='hist-item';
-    div.innerHTML=`<span class="hist-date">${h.date}</span>
-      <span class="hist-cost">${fmt(h.final,3)} €</span>
-      <span class="hist-detail">${fmt(h.bruto,3)} € bruto · ${h.bono}% bono · ${fmt(h.kw,2)} kW · ${h.hrs} h</span>
-      <button class="btn-rm" onclick="deleteHist(${i})">×</button>`;
-    el.appendChild(div);
-  });
-}
-function deleteHist(i){const h=JSON.parse(localStorage.getItem('acHist')||'[]');h.splice(i,1);localStorage.setItem('acHist',JSON.stringify(h));renderHistory();}
-function clearHistory(){if(confirm('¿Borrar todo el historial?')){localStorage.removeItem('acHist');renderHistory();}}
 
-/* ── EXPORTAR PDF ── */
+async function saveSettings(){
+  const btn=document.getElementById('settingsBtnTxt'); btn.innerHTML=spin('');
+  const data={
+    bono_social_pct: parseFloat(document.getElementById('settingsBonoSel').value)||42.5,
+    prometheus_url:  document.getElementById('settingsPromUrl').value.trim(),
+    aemet_municipio: settings.aemet_municipio,
+    aemet_municipio_nombre: settings.aemet_municipio_nombre,
+  };
+  try{
+    const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    settings=await r.json();
+    document.getElementById('bonoSel').value=String(settings.bono_social_pct);
+    document.getElementById('promUrlLabel').textContent=settings.prometheus_url||'—';
+    showBanner('✅ Ajustes guardados');
+  }catch(e){alert('Error guardando ajustes: '+e.message);}
+  finally{btn.textContent='Guardar ajustes';}
+}
+
+/* ── BÚSQUEDA DE MUNICIPIO ── */
+function searchMunicipio(q){
+  clearTimeout(munSearchTimer);
+  const res=document.getElementById('munResults');
+  if(q.length<3){res.style.display='none';return;}
+  munSearchTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch(`/api/municipios?q=${encodeURIComponent(q)}`);
+      const d=await r.json();
+      if(d.error||!d.length){res.style.display='none';return;}
+      res.innerHTML='';
+      d.forEach(m=>{
+        const div=document.createElement('div'); div.className='search-result-item';
+        div.innerHTML=`${m.nombre}<span class="mun-id">${m.id}</span>`;
+        div.onclick=()=>{
+          settings.aemet_municipio=m.id;
+          settings.aemet_municipio_nombre=m.nombre;
+          document.getElementById('munActual').textContent=m.nombre;
+          document.getElementById('munCodigo').textContent=`(código: ${m.id})`;
+          document.getElementById('munSearch').value='';
+          res.style.display='none';
+          temps={};// limpiar caché de temperatura
+        };
+        res.appendChild(div);
+      });
+      res.style.display='block';
+    }catch(e){res.style.display='none';}
+  },400);
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#munSearch')&&!e.target.closest('#munResults'))
+    document.getElementById('munResults').style.display='none';
+});
+
+/* ── PDF ── */
 function exportPDF(){
   const bono=parseFloat(document.getElementById('bonoSel').value)||0;
-  const kw=kwTotal();const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  const kw=kwTotal(); const avg=avgPrice();
   let bruto=0;
   if(activeTab==='botones'){[...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);});}
   else{franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});}
   const final=bruto*(1-bono/100);
   const date=document.getElementById('datePicker').value;
-  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>`${m.label} (${state[m.id].mode})`).concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>`${e.label} ${fmt(extraState[e.id].kw,2)}kW`)).join(', ')||'—';
-
+  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>`${m.label} (${state[m.id].mode})`)
+    .concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>`${e.label} ${fmt(extraState[e.id].kw,2)}kW`)).join(', ')||'—';
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe AC ${date}</title>
-  <style>body{font-family:Arial,sans-serif;padding:2rem;color:#111;}h1{font-size:20px;}table{width:100%;border-collapse:collapse;margin:1rem 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f5f5f5;}
-  .total{font-size:22px;font-weight:bold;color:#1D9E75;}.muted{color:#666;font-size:12px;}</style></head><body>
+  <style>body{font-family:Arial,sans-serif;padding:2rem;color:#111;}h1{font-size:20px;margin-bottom:.5rem;}
+  table{width:100%;border-collapse:collapse;margin:1rem 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+  th{background:#f5f5f5;}.total{font-size:22px;font-weight:bold;color:#1D9E75;}.muted{color:#666;font-size:12px;}</style>
+  </head><body>
   <h1>⚡ Informe de consumo eléctrico</h1>
   <p class="muted">Generado el ${new Date().toLocaleString('es-ES')} · Gabba82/ac-cost-web</p>
-  <table><tr><th>Fecha</th><td>${date}</td></tr>
-  <tr><th>Aparatos activos</th><td>${aparatos}</td></tr>
-  <tr><th>Potencia total</th><td>${fmt(kw,2)} kW</td></tr>
-  <tr><th>Coste bruto</th><td>${fmt(bruto,3)} €</td></tr>
-  <tr><th>Descuento bono social</th><td>${bono}% (−${fmt(bruto*bono/100,3)} €)</td></tr>
-  <tr><th>Coste final</th><td><strong class="total">${fmt(final,3)} €</strong></td></tr>
-  <tr><th>Precio medio PVPC</th><td>${fmt(avg*1000,2)} €/MWh</td></tr></table>
+  <table>
+    <tr><th>Fecha</th><td>${date}</td></tr>
+    <tr><th>Aparatos activos</th><td>${aparatos}</td></tr>
+    <tr><th>Potencia total</th><td>${fmt(kw,2)} kW</td></tr>
+    <tr><th>Coste bruto</th><td>${fmt(bruto,3)} €</td></tr>
+    <tr><th>Descuento bono social</th><td>${bono}% (−${fmt(bruto*bono/100,3)} €)</td></tr>
+    <tr><th>Coste final</th><td><strong class="total">${fmt(final,3)} €</strong></td></tr>
+    <tr><th>Precio medio PVPC</th><td>${fmt(avg*1000,2)} €/MWh</td></tr>
+  </table>
   <script>window.print();window.close();<\/script></body></html>`);
 }
 
-/* Botón guardar en historial */
-document.querySelector('.metrics').insertAdjacentHTML('afterend',
-  '<div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem;"><button class="ghost" onclick="saveToHistory()">💾 Guardar en historial</button></div>');
+function showBanner(msg){
+  const b=document.getElementById('saveBanner');
+  b.textContent=msg; b.style.display='block';
+  setTimeout(()=>b.style.display='none',2500);
+}
 </script>
 </body>
 </html>
