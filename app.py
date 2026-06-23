@@ -149,9 +149,13 @@ def temperature():
 
         result = {"date": date_str, "temps": temps,
                   "min": min(temps.values()), "max": max(temps.values())}
-        cache_set(f"temp:{date_str}", result, ttl=3600)
+        cache_set(f"temp:{date_str}", result, ttl=21600)  # 6 horas
         return jsonify(result)
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            return jsonify({"error": "AEMET: demasiadas peticiones (429) — espera unos minutos e inténtalo de nuevo"}), 429
+        return jsonify({"error": f"AEMET HTTP {e.response.status_code}"}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
