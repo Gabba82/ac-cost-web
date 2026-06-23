@@ -3,532 +3,832 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚡ Calculadora Aire Acondicionado</title>
+<title>⚡ Calculadora Consumo Eléctrico</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg:#0f1117; --bg2:#1a1d27; --bg3:#22263a;
-    --border:rgba(255,255,255,0.08); --text:#e8eaf0; --muted:#8b92a5;
-    --green:#1D9E75; --green-dim:rgba(29,158,117,0.15);
-    --amber:#EF9F27; --red:#E24B4A; --blue:#378ADD;
-    --radius:10px; --radius-sm:6px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;}
-  .app{max-width:900px;margin:0 auto;padding:1.5rem 1rem 4rem;}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;}
-  header h1{font-size:18px;font-weight:600;}
-  .pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--green-dim);color:var(--green);font-weight:500;}
-  .status-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid var(--border);margin-bottom:1.25rem;font-size:13px;color:var(--muted);}
-  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background 0.3s;}
-  .dot-ok{background:var(--green);}.dot-warn{background:var(--amber);}.dot-err{background:var(--red);}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
-  @media(max-width:600px){.row2{grid-template-columns:1fr;}}
-  .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;}
-  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.875rem;}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
-  input[type=date],input[type=time],select{width:100%;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
-  input[type=date]:focus,input[type=time]:focus,select:focus{border-color:var(--green);}
-  button.primary{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--radius-sm);background:var(--green);color:white;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;}
-  button.primary:hover{opacity:0.85;}button.primary:disabled{opacity:0.4;cursor:not-allowed;}
-  button.ghost{padding:5px 12px;border-radius:var(--radius-sm);background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all 0.15s;}
-  button.ghost:hover{border-color:var(--text);color:var(--text);}
-  .machine-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
-  .machine-row:last-child{border-bottom:none;}
-  .toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
-  .toggle input{opacity:0;width:0;height:0;}
-  .slider{position:absolute;inset:0;border-radius:20px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:background 0.2s;}
-  .slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:all 0.2s;}
-  .toggle input:checked+.slider{background:var(--green);border-color:var(--green);}
-  .toggle input:checked+.slider::before{left:18px;background:white;}
-  .machine-name{flex:1;font-size:13px;}
-  .machine-kw{font-size:12px;color:var(--muted);min-width:56px;text-align:right;}
-  .mode-sel{width:auto;padding:4px 8px;font-size:12px;}
-  .hour-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;}
-  .hour-btn{height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.12s;font-family:inherit;}
-  .hour-btn:hover:not(.active){border-color:rgba(255,255,255,0.2);color:var(--text);}
-  .hour-btn.active{background:var(--green);border-color:var(--green);color:white;font-weight:500;}
-  .hour-btn.cheapest:not(.active){border-color:var(--green);color:var(--green);}
-  .hour-btn.priciest:not(.active){border-color:var(--red);color:var(--red);}
-  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
-  @media(max-width:600px){.metrics{grid-template-columns:1fr 1fr;}}
-  .metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;}
-  .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
-  .metric-value{font-size:22px;font-weight:600;color:var(--text);line-height:1.2;}
-  .metric-sub{font-size:11px;color:var(--muted);margin-top:3px;}
-  .metric.highlight{border-color:var(--green);}
-  .metric.highlight .metric-value{color:var(--green);}
-  .desglose{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:0.75rem;}
-  @media(max-width:600px){.desglose{grid-template-columns:repeat(4,1fr);}}
-  .desglose-item{background:var(--bg3);border:1px solid var(--green-dim);border-radius:var(--radius-sm);padding:6px 4px;text-align:center;}
-  .desglose-h{font-size:11px;color:var(--muted);}
-  .desglose-p{font-size:12px;font-weight:600;color:var(--text);margin:2px 0;}
-  .desglose-c{font-size:10px;color:var(--muted);}
-  .legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
-  .legend span{display:flex;align-items:center;gap:5px;}
-  .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
-  .bono-info{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;}
-  .bono-info strong{color:var(--amber);}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .extra-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
-  .extra-row:last-child{border-bottom:none;}
-  .extra-label{min-width:160px;font-size:13px;color:var(--text);}
-  .extra-slider{flex:1;accent-color:var(--amber);cursor:pointer;}
-  .extra-val{min-width:54px;text-align:right;font-size:13px;font-weight:600;color:var(--amber);}
-  .extra-toggle{flex-shrink:0;}
-
-  /* Pestañas */
-  .tabs{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid var(--border);}
-  .tab{padding:7px 16px;font-size:13px;cursor:pointer;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;font-family:inherit;}
-  .tab.active{color:var(--green);border-bottom-color:var(--green);}
-  .tab:hover:not(.active){color:var(--text);}
-  .tab-panel{display:none;}
-  .tab-panel.active{display:block;}
-
-  /* Franjas */
-  .franja-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);}
-  .franja-row:last-child{border-bottom:none;}
-  .franja-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
-  .franja-time{width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
-  .franja-time:focus{border-color:var(--green);}
-  .btn-remove{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
-  .btn-remove:hover{border-color:var(--red);color:var(--red);}
-  .franja-resumen{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8;}
-  .franja-resumen span{color:var(--amber);font-weight:600;}
-
-  footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--border:rgba(255,255,255,0.08);--text:#e8eaf0;--muted:#8b92a5;--green:#1D9E75;--gdim:rgba(29,158,117,0.15);--amber:#EF9F27;--red:#E24B4A;--blue:#378ADD;--r:10px;--rs:6px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;}
+.app{max-width:960px;margin:0 auto;padding:1.5rem 1rem 4rem;}
+header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;}
+header h1{font-size:18px;font-weight:600;}
+.pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--gdim);color:var(--green);font-weight:500;}
+.status-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);margin-bottom:1.25rem;font-size:13px;color:var(--muted);}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.dot-ok{background:var(--green);}.dot-warn{background:var(--amber);}.dot-err{background:var(--red);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+@media(max-width:640px){.row2,.row3{grid-template-columns:1fr;}}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;}
+.card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.875rem;}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
+input[type=date],input[type=time],input[type=number],select{width:100%;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
+input:focus,select:focus{border-color:var(--green);}
+button.primary{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--rs);background:var(--green);color:white;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+button.primary:hover{opacity:.85;}button.primary:disabled{opacity:.4;cursor:not-allowed;}
+button.ghost{padding:5px 12px;border-radius:var(--rs);background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .15s;}
+button.ghost:hover{border-color:var(--text);color:var(--text);}
+button.amber{background:var(--amber);color:#1a1200;border:none;padding:9px 20px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+button.amber:hover{opacity:.85;}
+.machine-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.machine-row:last-child{border-bottom:none;}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;border-radius:20px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:background .2s;}
+.slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:all .2s;}
+.toggle input:checked+.slider{background:var(--green);border-color:var(--green);}
+.toggle input:checked+.slider::before{left:18px;background:white;}
+.machine-name{flex:1;font-size:13px;}.machine-kw{font-size:12px;color:var(--muted);min-width:56px;text-align:right;}
+.mode-sel{width:auto;padding:4px 8px;font-size:12px;}
+.hour-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;}
+.hbtn{height:30px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:11px;cursor:pointer;transition:all .12s;font-family:inherit;}
+.hbtn:hover:not(.active){border-color:rgba(255,255,255,.2);color:var(--text);}
+.hbtn.active{background:var(--green);border-color:var(--green);color:white;font-weight:500;}
+.hbtn.cheapest:not(.active){border-color:var(--green);color:var(--green);}
+.hbtn.priciest:not(.active){border-color:var(--red);color:var(--red);}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
+@media(max-width:640px){.metrics{grid-template-columns:1fr 1fr;}}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.875rem 1rem;}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.metric-value{font-size:22px;font-weight:600;color:var(--text);line-height:1.2;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.metric.hl{border-color:var(--green);}.metric.hl .metric-value{color:var(--green);}
+.metric.hl-amber{border-color:var(--amber);}.metric.hl-amber .metric-value{color:var(--amber);}
+.desglose{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:.75rem;}
+@media(max-width:640px){.desglose{grid-template-columns:repeat(4,1fr);}}
+.di{background:var(--bg3);border:1px solid var(--gdim);border-radius:var(--rs);padding:6px 4px;text-align:center;}
+.di-h{font-size:11px;color:var(--muted);}.di-p{font-size:12px;font-weight:600;color:var(--text);margin:2px 0;}.di-c{font-size:10px;color:var(--muted);}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.bono-info{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;}
+.bono-info strong{color:var(--amber);}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.extra-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.extra-row:last-child{border-bottom:none;}
+.extra-label{min-width:160px;font-size:13px;color:var(--text);}
+.xslider{flex:1;accent-color:var(--amber);cursor:pointer;}
+.extra-val{min-width:54px;text-align:right;font-size:13px;font-weight:600;color:var(--amber);}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+.tab{padding:7px 16px;font-size:13px;cursor:pointer;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:inherit;}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+.tab:hover:not(.active){color:var(--text);}
+.tp{display:none;}.tp.active{display:block;}
+.nav-tabs{display:flex;gap:4px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.nav-tab{padding:8px 18px;border-radius:var(--rs);border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.nav-tab.active{background:var(--green);color:white;border-color:var(--green);}
+.nav-tab:hover:not(.active){border-color:var(--text);color:var(--text);}
+.section{display:none;}.section.active{display:block;}
+.franja-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);}
+.franja-row:last-child{border-bottom:none;}
+.franja-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.btn-rm{width:28px;height:28px;border-radius:var(--rs);border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.btn-rm:hover{border-color:var(--red);color:var(--red);}
+.franja-res{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8;}
+.franja-res span{color:var(--amber);font-weight:600;}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:640px){.compare-grid{grid-template-columns:1fr;}}
+.compare-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:1rem;}
+.compare-card.winner{border-color:var(--green);}
+.compare-card.loser{opacity:.7;}
+.optimal-result{background:var(--bg3);border:1px solid var(--gdim);border-radius:var(--r);padding:1rem;margin-top:1rem;}
+.optimal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.optimal-row:last-child{border-bottom:none;}
+.optimal-row.best{color:var(--green);font-weight:600;}
+.hist-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.hist-item:last-child{border-bottom:none;}
+.hist-date{color:var(--muted);font-size:12px;min-width:90px;}
+.hist-cost{font-weight:600;color:var(--green);min-width:70px;}
+.hist-detail{color:var(--muted);font-size:12px;flex:1;}
+.monthly-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;}
+.monthly-bar-wrap{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.monthly-bar{height:100%;background:var(--green);border-radius:4px;transition:width .3s;}
+.monthly-cost{min-width:60px;text-align:right;color:var(--amber);font-weight:600;}
+.prometheus-stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
+footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
 </style>
 </head>
 <body>
 <div class="app">
+<header>
+  <span style="font-size:22px;">⚡</span>
+  <h1>Calculadora consumo eléctrico</h1>
+  <span class="pill">PVPC · ESIOS · AEMET</span>
+</header>
 
-  <header>
-    <span style="font-size:22px;">⚡</span>
-    <h1>Calculadora consumo eléctrico</h1>
-    <span class="pill">PVPC · ESIOS</span>
-  </header>
+<div class="status-bar">
+  <span class="dot dot-warn" id="statusDot"></span>
+  <span id="statusText">Cargando precios de hoy...</span>
+</div>
 
-  <div class="status-bar">
-    <span class="dot dot-warn" id="statusDot"></span>
-    <span id="statusText">Selecciona una fecha y carga los precios</span>
-  </div>
+<!-- NAV PRINCIPAL -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showSection('calc')">Calculadora</button>
+  <button class="nav-tab" onclick="showSection('compare')">Comparar días</button>
+  <button class="nav-tab" onclick="showSection('optimal')">Hora óptima</button>
+  <button class="nav-tab" onclick="showSection('monthly')">Estimación mensual</button>
+  <button class="nav-tab" onclick="showSection('history')">Historial</button>
+  <button class="nav-tab" onclick="showSection('prometheus')">Acumulado real</button>
+</div>
 
-  <div class="row2" style="margin-bottom:1.25rem;">
-    <div>
-      <label>Fecha</label>
-      <input type="date" id="datePicker">
-    </div>
+<!-- ══ SECCIÓN: CALCULADORA ══════════════════════════════════════════════ -->
+<div class="section active" id="sec-calc">
+  <div class="row2">
+    <div><label>Fecha</label><input type="date" id="datePicker"></div>
     <div style="display:flex;align-items:flex-end;gap:8px;">
-      <button class="primary" id="loadBtn" onclick="loadPrices()">
-        <span id="loadBtnText">Cargar precios</span>
-      </button>
+      <button class="primary" id="loadBtn" onclick="loadPrices()"><span id="loadBtnText">Cargar precios</span></button>
+      <button class="ghost" onclick="exportPDF()" title="Exportar PDF">⬇ PDF</button>
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:1.25rem;">
+  <div class="card">
     <p class="card-title">Máquinas de aire acondicionado</p>
     <div id="machineList"></div>
   </div>
 
-  <div class="card" style="margin-bottom:1.25rem;">
+  <div class="card">
     <p class="card-title">Otros aparatos</p>
     <div id="extraList"></div>
-    <p style="font-size:11px;color:var(--muted);margin-top:10px;">Activa el aparato y ajusta los kW. Se suman al total de las horas seleccionadas.</p>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;">Activa el aparato y ajusta los kW con el deslizador.</p>
   </div>
 
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
       <p class="card-title" style="margin:0;">Horas de uso</p>
     </div>
-
     <div class="tabs">
       <button class="tab active" onclick="switchTab('botones')">Por horas</button>
       <button class="tab" onclick="switchTab('franjas')">Franjas horarias</button>
     </div>
-
-    <!-- Tab 1: botones de hora -->
-    <div class="tab-panel active" id="tab-botones">
+    <div class="tp active" id="tab-botones">
       <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px;">
         <button class="ghost" onclick="setHours('all')">Todas</button>
         <button class="ghost" onclick="setHours('none')">Ninguna</button>
         <button class="ghost" onclick="setHours('cheap')">3 más baratas</button>
       </div>
       <div class="legend">
-        <span><span class="leg-dot" style="background:var(--green);"></span>Hora activa</span>
-        <span><span class="leg-dot" style="border:1px solid var(--green);background:transparent;"></span>Más barata</span>
-        <span><span class="leg-dot" style="border:1px solid var(--red);background:transparent;"></span>Más cara</span>
+        <span><span class="ldot" style="background:var(--green);"></span>Activa</span>
+        <span><span class="ldot" style="border:1px solid var(--green);background:transparent;"></span>Más barata</span>
+        <span><span class="ldot" style="border:1px solid var(--red);background:transparent;"></span>Más cara</span>
       </div>
       <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
       <div class="hour-grid" id="hg2"></div>
     </div>
-
-    <!-- Tab 2: franjas desde/hasta con fracciones -->
-    <div class="tab-panel" id="tab-franjas">
+    <div class="tp" id="tab-franjas">
       <div id="franjaList"></div>
       <button class="ghost" style="margin-top:10px;" onclick="addFranja()">+ Añadir franja</button>
-      <div class="franja-resumen" id="franjaResumen"></div>
+      <div class="franja-res" id="franjaRes"></div>
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:1.25rem;">
+  <div class="card">
     <p class="card-title">Bono social</p>
     <select id="bonoSel" onchange="compute()">
       <option value="0">Sin bono social</option>
-      <option value="42.5" selected>42,5% — Vulnerable (2026, prorrogado)</option>
+      <option value="42.5" selected>42,5% — Vulnerable (2026)</option>
       <option value="57.5">57,5% — Vulnerable severo (2026)</option>
-      <option value="35">35% — Vulnerable (2027 estimado)</option>
-      <option value="50">50% — Vulnerable severo (2027 estimado)</option>
+      <option value="35">35% — Vulnerable (2027 est.)</option>
+      <option value="50">50% — Vulnerable severo (2027 est.)</option>
       <option value="100">100% — Riesgo exclusión social</option>
     </select>
-    <p class="bono-info">
-      El descuento se aplica sobre el término de energía del PVPC, no sobre peajes ni impuestos.<br>
-      <strong>2026:</strong> 42,5% prorrogado por RDL 16/2025 · <strong>2027:</strong> 35% base salvo nueva prórroga.
-    </p>
+    <p class="bono-info"><strong>2026:</strong> 42,5% prorrogado (RDL 16/2025) · <strong>2027:</strong> 35% base salvo prórroga.</p>
   </div>
 
   <div class="metrics">
     <div class="metric"><p class="metric-label">Coste bruto</p><p class="metric-value" id="mBruto">—</p><p class="metric-sub">sin descuento</p></div>
     <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" id="mAhorro" style="color:var(--green);">—</p><p class="metric-sub" id="mAhorroPct">—</p></div>
-    <div class="metric highlight"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub">con bono aplicado</p></div>
+    <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub">con bono</p></div>
     <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value" id="mKwh">—</p><p class="metric-sub" id="mInfo">—</p></div>
   </div>
 
-  <div class="card" id="desgloseCard" style="display:none;margin-bottom:1.25rem;">
+  <div class="card" id="desgloseCard" style="display:none;">
     <p class="card-title">Desglose</p>
     <div class="desglose" id="desglose"></div>
   </div>
 
-  <div class="card" style="margin-bottom:1.25rem;">
-    <p class="card-title">Curva PVPC del día <span id="chartDate" style="font-weight:400;text-transform:none;color:var(--muted);"></span></p>
-    <div style="position:relative;height:180px;">
-      <canvas id="chart" role="img" aria-label="Precios PVPC por hora">Curva de precios PVPC horarios.</canvas>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+      <p class="card-title" style="margin:0;">Curva PVPC <span id="chartDate" style="font-weight:400;text-transform:none;color:var(--muted);"></span></p>
+      <button class="ghost" id="tempBtn" onclick="toggleTemp()" style="font-size:11px;">🌡 Temperatura</button>
+    </div>
+    <div id="tempStatus" style="font-size:11px;color:var(--muted);margin-bottom:6px;display:none;"></div>
+    <div style="position:relative;height:200px;">
+      <canvas id="chart" role="img" aria-label="Curva PVPC y temperatura">Curva de precios PVPC horarios.</canvas>
+    </div>
+    <div class="legend" style="margin-top:8px;margin-bottom:0;">
+      <span><span class="ldot" style="background:#1D9E75;"></span>Hora activa</span>
+      <span><span class="ldot" style="background:#378ADD;"></span>Hora libre</span>
+      <span id="tempLegend" style="display:none;"><span class="ldot" style="background:#EF9F27;"></span>Temperatura °C</span>
     </div>
   </div>
+</div>
 
-  <footer>Precios obtenidos de ESIOS · REE · Gabba82/ac-cost-web</footer>
+<!-- ══ SECCIÓN: COMPARAR DÍAS ═══════════════════════════════════════════ -->
+<div class="section" id="sec-compare">
+  <div class="card">
+    <p class="card-title">Selecciona dos días a comparar</p>
+    <div class="row2">
+      <div><label>Día A</label><input type="date" id="cmpDateA"></div>
+      <div><label>Día B</label><input type="date" id="cmpDateB"></div>
+    </div>
+    <button class="primary" onclick="runCompare()"><span id="cmpBtnTxt">Comparar</span></button>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa el mismo uso definido en la calculadora principal.</p>
+  </div>
+  <div id="compareResult" style="display:none;">
+    <div class="compare-grid" id="compareCards"></div>
+    <div class="card" style="margin-top:12px;">
+      <p class="card-title">Curva de precios comparada</p>
+      <div style="position:relative;height:200px;"><canvas id="compareChart" role="img" aria-label="Comparación de precios">Comparación de precios PVPC.</canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECCIÓN: HORA ÓPTIMA ══════════════════════════════════════════════ -->
+<div class="section" id="sec-optimal">
+  <div class="card">
+    <p class="card-title">Configuración</p>
+    <div class="row3">
+      <div><label>Fecha</label><input type="date" id="optDate"></div>
+      <div><label>Duración (horas)</label><input type="number" id="optDuration" value="2" min="0.25" max="24" step="0.25"></div>
+      <div><label>Número de resultados</label><input type="number" id="optTop" value="5" min="1" max="10" step="1"></div>
+    </div>
+    <button class="primary" onclick="runOptimal()"><span id="optBtnTxt">Calcular hora óptima</span></button>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Usa los aparatos activos en la calculadora principal. Encuentra la ventana de inicio más barata.</p>
+  </div>
+  <div id="optimalResult" style="display:none;" class="card">
+    <p class="card-title">Mejores horas de inicio <span id="optKwLabel" style="font-weight:400;text-transform:none;color:var(--muted);"></span></p>
+    <div id="optimalRows"></div>
+  </div>
+</div>
+
+<!-- ══ SECCIÓN: ESTIMACIÓN MENSUAL ══════════════════════════════════════ -->
+<div class="section" id="sec-monthly">
+  <div class="card">
+    <p class="card-title">Patrón semanal de uso</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Define cuántas horas usas los aparatos activos cada día de la semana. Se multiplica por las semanas del mes y el precio medio histórico de cada día.</p>
+    <div id="weekPattern"></div>
+    <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="primary" onclick="runMonthly()"><span id="mthBtnTxt">Estimar coste mensual</span></button>
+      <button class="ghost" onclick="setWeekPattern(8)">8h todos</button>
+      <button class="ghost" onclick="setWeekPattern(0)">Limpiar</button>
+    </div>
+  </div>
+  <div id="monthlyResult" style="display:none;" class="card">
+    <p class="card-title">Estimación del mes actual</p>
+    <div class="metrics" style="margin-bottom:1rem;">
+      <div class="metric hl-amber"><p class="metric-label">Coste bruto mes</p><p class="metric-value" id="mthBruto">—</p><p class="metric-sub">estimación</p></div>
+      <div class="metric hl"><p class="metric-label">Con bono social</p><p class="metric-value" id="mthFinal">—</p><p class="metric-sub" id="mthBonoPct">—</p></div>
+      <div class="metric"><p class="metric-label">kWh estimados</p><p class="metric-value" id="mthKwh">—</p><p class="metric-sub">en el mes</p></div>
+      <div class="metric"><p class="metric-label">Coste diario medio</p><p class="metric-value" id="mthDaily">—</p><p class="metric-sub">€/día</p></div>
+    </div>
+    <div id="monthlyDays"></div>
+  </div>
+</div>
+
+<!-- ══ SECCIÓN: HISTORIAL ════════════════════════════════════════════════ -->
+<div class="section" id="sec-history">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">Últimos cálculos guardados</p>
+      <button class="ghost" onclick="clearHistory()">Limpiar todo</button>
+    </div>
+    <div id="historyList"><p style="font-size:13px;color:var(--muted);">Aún no hay cálculos guardados. Usa la calculadora y pulsa "Guardar en historial".</p></div>
+  </div>
+</div>
+
+<!-- ══ SECCIÓN: PROMETHEUS ═══════════════════════════════════════════════ -->
+<div class="section" id="sec-prometheus">
+  <div class="card">
+    <p class="card-title">Conexión a Prometheus</p>
+    <div class="row2">
+      <div><label>URL de Prometheus</label><input type="text" id="promUrl" value="http://onster:9090" placeholder="http://onster:9090"></div>
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="primary" onclick="loadPrometheus()"><span id="promBtnTxt">Cargar datos</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="prometheusResult" style="display:none;" class="card">
+    <p class="card-title">Acumulado real del mes</p>
+    <div class="prometheus-stat">
+      <div class="metric hl-amber"><p class="metric-label">Coste acumulado mes</p><p class="metric-value" id="promMonthly">—</p><p class="metric-sub" id="promMonth">—</p></div>
+      <div class="metric hl"><p class="metric-label">Acumulado hoy</p><p class="metric-value" id="promToday">—</p><p class="metric-sub">según exporter</p></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:.5rem;">Datos obtenidos de tu exporter ac-cost-exporter vía Prometheus. El cálculo mensual usa la métrica ac_total_cost_eur_hour integrada en el tiempo.</p>
+  </div>
+</div>
+
+<footer>Precios: ESIOS · REE · Temperatura: AEMET · Gabba82/ac-cost-web</footer>
 </div>
 
 <script>
 const MACHINES = {{ machines | tojson }};
 const state = {};
-MACHINES.forEach(m => state[m.id] = { active: false, mode: 'frio' });
+MACHINES.forEach(m => state[m.id] = {active:false, mode:'frio'});
 
 const EXTRAS = [
-  { id:'horno',        label:'Horno',                    min:0.5,  max:4.0,  step:0.1,  def:2.0  },
-  { id:'lavadora',     label:'Lavadora',                 min:0.3,  max:3.0,  step:0.1,  def:1.0  },
-  { id:'secadora',     label:'Secadora',                 min:0.5,  max:4.0,  step:0.1,  def:2.5  },
-  { id:'lavavajillas', label:'Lavavajillas',             min:0.5,  max:3.0,  step:0.1,  def:1.5  },
-  { id:'tv',           label:'TV / entretenimiento',     min:0.05, max:1.0,  step:0.05, def:0.1  },
-  { id:'vent_pequeño', label:'Ventilador techo pequeño', min:0.01, max:0.15, step:0.01, def:0.04 },
-  { id:'vent_mediano', label:'Ventilador techo mediano', min:0.01, max:0.15, step:0.01, def:0.06 },
-  { id:'vent_grande',  label:'Ventilador techo grande',  min:0.01, max:0.15, step:0.01, def:0.09 },
-  { id:'personalizado',label:'Aparato personalizado',    min:0.1,  max:10.0, step:0.1,  def:1.0  },
+  {id:'horno',        label:'Horno',                    min:0.5,  max:4.0,  step:0.1,  def:2.0 },
+  {id:'lavadora',     label:'Lavadora',                 min:0.3,  max:3.0,  step:0.1,  def:1.0 },
+  {id:'secadora',     label:'Secadora',                 min:0.5,  max:4.0,  step:0.1,  def:2.5 },
+  {id:'lavavajillas', label:'Lavavajillas',             min:0.5,  max:3.0,  step:0.1,  def:1.5 },
+  {id:'tv',           label:'TV / entretenimiento',     min:0.05, max:1.0,  step:0.05, def:0.1 },
+  {id:'vent_pequeño', label:'Ventilador techo pequeño', min:0.01, max:0.15, step:0.01, def:0.04},
+  {id:'vent_mediano', label:'Ventilador techo mediano', min:0.01, max:0.15, step:0.01, def:0.06},
+  {id:'vent_grande',  label:'Ventilador techo grande',  min:0.01, max:0.15, step:0.01, def:0.09},
+  {id:'personalizado',label:'Aparato personalizado',    min:0.1,  max:10.0, step:0.1,  def:1.0 },
 ];
 const extraState = {};
-EXTRAS.forEach(e => extraState[e.id] = { active: false, kw: e.def });
+EXTRAS.forEach(e => extraState[e.id] = {active:false, kw:e.def});
 
-let prices   = {};
-let selHrs   = new Set();
-let franjas  = [];         // [{desde:'08:30', hasta:'13:45'}, ...]
-let activeTab = 'botones';
-let chartObj = null;
-let franjaId = 0;
+let prices={}, temps={}, selHrs=new Set(), franjas=[], activeTab='botones';
+let chartObj=null, compareChartObj=null, showTemp=false, franjaId=0;
 
-function fmt(num, dec) { return num.toFixed(dec).replace('.', ','); }
+const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+let weekHours = [8,8,8,8,8,6,6];
 
-document.getElementById('datePicker').value = new Date().toISOString().slice(0,10);
+function fmt(n,d){ return n.toFixed(d).replace('.',','); }
+function fmtH(h){ return String(h).padStart(2,'0')+'h'; }
 
-/* ══ PESTAÑAS ══════════════════════════════════════════════════════════ */
-function switchTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['botones','franjas'][i]===tab));
-  document.getElementById('tab-botones').classList.toggle('active', tab==='botones');
-  document.getElementById('tab-franjas').classList.toggle('active', tab==='franjas');
+/* ── NAV ── */
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='history') renderHistory();
+  if(id==='optimal'){ document.getElementById('optDate').value=document.getElementById('datePicker').value; }
+  if(id==='compare'){
+    const d=document.getElementById('datePicker').value;
+    const d2=new Date(d); d2.setDate(d2.getDate()+1);
+    document.getElementById('cmpDateA').value=d;
+    document.getElementById('cmpDateB').value=d2.toISOString().slice(0,10);
+  }
+}
+
+/* ── INIT ── */
+const today=new Date().toISOString().slice(0,10);
+document.getElementById('datePicker').value=today;
+document.getElementById('optDate').value=today;
+buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
+
+/* ── PESTAÑAS HORAS ── */
+function switchTab(t){
+  activeTab=t;
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['botones','franjas'][i]===t));
+  document.getElementById('tab-botones').classList.toggle('active',t==='botones');
+  document.getElementById('tab-franjas').classList.toggle('active',t==='franjas');
   compute();
 }
 
-/* ══ MÁQUINAS AC ═══════════════════════════════════════════════════════ */
-function buildMachines() {
-  const el = document.getElementById('machineList');
-  el.innerHTML = '';
-  MACHINES.forEach(m => {
-    const st = state[m.id];
-    const kw = st.mode==='frio' ? m.kw_frio : m.kw_calor;
-    const d  = document.createElement('div');
-    d.className = 'machine-row';
-    d.innerHTML = `
-      <label class="toggle">
-        <input type="checkbox" ${st.active?'checked':''} onchange="toggle('${m.id}',this.checked)">
-        <span class="slider"></span>
-      </label>
-      <span class="machine-name" style="opacity:${st.active?1:0.5}">${m.label}</span>
+/* ── MÁQUINAS ── */
+function buildMachines(){
+  const el=document.getElementById('machineList'); el.innerHTML='';
+  MACHINES.forEach(m=>{
+    const st=state[m.id], kw=st.mode==='frio'?m.kw_frio:m.kw_calor;
+    const d=document.createElement('div'); d.className='machine-row';
+    d.innerHTML=`<label class="toggle"><input type="checkbox" ${st.active?'checked':''} onchange="toggle('${m.id}',this.checked)"><span class="slider"></span></label>
+      <span class="machine-name" style="opacity:${st.active?1:.5}">${m.label}</span>
       <select class="mode-sel" onchange="setMode('${m.id}',this.value)">
-        <option value="frio"  ${st.mode==='frio' ?'selected':''}>Frío</option>
+        <option value="frio" ${st.mode==='frio'?'selected':''}>Frío</option>
         <option value="calor" ${st.mode==='calor'?'selected':''}>Calor</option>
       </select>
       <span class="machine-kw">${fmt(kw,2)} kW</span>`;
     el.appendChild(d);
   });
 }
-function toggle(id,val){ state[id].active=val; buildMachines(); compute(); }
-function setMode(id,v) { state[id].mode=v;    buildMachines(); compute(); }
+function toggle(id,v){state[id].active=v;buildMachines();compute();}
+function setMode(id,v){state[id].mode=v;buildMachines();compute();}
 
-/* ══ APARATOS EXTRA ═════════════════════════════════════════════════════ */
-function buildExtras() {
-  const el = document.getElementById('extraList');
-  el.innerHTML = '';
-  EXTRAS.forEach(e => {
-    const st  = extraState[e.id];
-    const row = document.createElement('div');
-    row.className = 'extra-row';
-    row.innerHTML = `
-      <label class="toggle extra-toggle">
-        <input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)">
-        <span class="slider"></span>
-      </label>
-      <span class="extra-label" style="opacity:${st.active?1:0.5}">${e.label}</span>
-      <input type="range" class="extra-slider" id="sl_${e.id}"
-        min="${e.min}" max="${e.max}" step="${e.step}" value="${st.kw}"
-        ${st.active?'':'disabled'}
-        oninput="updateExtra('${e.id}',this.value)">
-      <span class="extra-val" id="val_${e.id}" style="opacity:${st.active?1:0.4}">${fmt(st.kw,2)} kW</span>`;
-    el.appendChild(row);
+/* ── EXTRAS ── */
+function buildExtras(){
+  const el=document.getElementById('extraList'); el.innerHTML='';
+  EXTRAS.forEach(e=>{
+    const st=extraState[e.id];
+    const r=document.createElement('div'); r.className='extra-row';
+    r.innerHTML=`<label class="toggle"><input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)"><span class="slider"></span></label>
+      <span class="extra-label" style="opacity:${st.active?1:.5}">${e.label}</span>
+      <input type="range" class="xslider" id="sl_${e.id}" min="${e.min}" max="${e.max}" step="${e.step}" value="${st.kw}" ${st.active?'':'disabled'} oninput="updateExtra('${e.id}',this.value)">
+      <span class="extra-val" id="val_${e.id}" style="opacity:${st.active?1:.4}">${fmt(st.kw,2)} kW</span>`;
+    el.appendChild(r);
   });
 }
-function toggleExtra(id,val){ extraState[id].active=val; buildExtras(); compute(); }
-function updateExtra(id,val){ extraState[id].kw=parseFloat(val); document.getElementById('val_'+id).textContent=fmt(parseFloat(val),2)+' kW'; compute(); }
+function toggleExtra(id,v){extraState[id].active=v;buildExtras();compute();}
+function updateExtra(id,v){extraState[id].kw=parseFloat(v);document.getElementById('val_'+id).textContent=fmt(parseFloat(v),2)+' kW';compute();}
 
-/* ══ HORAS (BOTONES) ════════════════════════════════════════════════════ */
-function buildHours() {
-  const pl     = Object.entries(prices).map(([h,p])=>({h:+h,p})).sort((a,b)=>a.p-b.p);
-  const cheapH = pl.length ? pl[0].h : -1;
-  const priH   = pl.length ? pl[pl.length-1].h : -1;
-  ['hg1','hg2'].forEach((gid,gi) => {
-    const el = document.getElementById(gid);
-    el.innerHTML = '';
-    for(let h=gi*12; h<gi*12+12; h++){
-      const b = document.createElement('button');
-      b.className = 'hour-btn' +
-        (selHrs.has(h)?' active':'') +
-        (h===cheapH&&!selHrs.has(h)?' cheapest':'') +
-        (h===priH  &&!selHrs.has(h)?' priciest':'');
-      b.textContent = String(h).padStart(2,'0')+'h';
-      if(prices[h]) b.title = fmt(prices[h]*1000,2)+' €/MWh';
-      b.onclick = () => { selHrs.has(h)?selHrs.delete(h):selHrs.add(h); buildHours(); compute(); };
+/* ── HORAS BOTONES ── */
+function buildHours(){
+  const pl=Object.entries(prices).map(([h,p])=>({h:+h,p})).sort((a,b)=>a.p-b.p);
+  const cheapH=pl.length?pl[0].h:-1, priH=pl.length?pl[pl.length-1].h:-1;
+  ['hg1','hg2'].forEach((gid,gi)=>{
+    const el=document.getElementById(gid); el.innerHTML='';
+    for(let h=gi*12;h<gi*12+12;h++){
+      const b=document.createElement('button');
+      b.className='hbtn'+(selHrs.has(h)?' active':'')+(h===cheapH&&!selHrs.has(h)?' cheapest':'')+(h===priH&&!selHrs.has(h)?' priciest':'');
+      b.textContent=fmtH(h);
+      if(prices[h]) b.title=fmt(prices[h]*1000,2)+' €/MWh';
+      b.onclick=()=>{selHrs.has(h)?selHrs.delete(h):selHrs.add(h);buildHours();compute();};
       el.appendChild(b);
     }
   });
 }
-function setHours(mode){
+function setHours(m){
   selHrs.clear();
-  if(mode==='all') for(let h=0;h<24;h++) selHrs.add(h);
-  else if(mode==='cheap'&&Object.keys(prices).length)
+  if(m==='all') for(let h=0;h<24;h++) selHrs.add(h);
+  else if(m==='cheap'&&Object.keys(prices).length)
     Object.entries(prices).sort((a,b)=>a[1]-b[1]).slice(0,3).forEach(([h])=>selHrs.add(+h));
-  buildHours(); compute();
+  buildHours();compute();
 }
 
-/* ══ FRANJAS HORARIAS ══════════════════════════════════════════════════ */
-function addFranja(desde='08:00', hasta='14:00'){
-  franjas.push({ id: franjaId++, desde, hasta });
-  buildFranjas(); compute();
-}
-
-function removeFranja(id){
-  franjas = franjas.filter(f=>f.id!==id);
-  buildFranjas(); compute();
-}
-
+/* ── FRANJAS ── */
+function addFranja(d='08:00',h='14:00'){franjas.push({id:franjaId++,desde:d,hasta:h});buildFranjas();compute();}
+function removeFranja(id){franjas=franjas.filter(f=>f.id!==id);buildFranjas();compute();}
 function buildFranjas(){
-  const el = document.getElementById('franjaList');
-  el.innerHTML = '';
-  if(!franjas.length){
-    el.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0;">Pulsa "+ Añadir franja" para definir un periodo de uso.</p>';
-    document.getElementById('franjaResumen').innerHTML = '';
-    return;
-  }
-  franjas.forEach(f => {
-    const row = document.createElement('div');
-    row.className = 'franja-row';
-    row.innerHTML = `
-      <div>
-        <p class="franja-label">Desde</p>
-        <input type="time" class="franja-time" value="${f.desde}" step="900"
-          onchange="updateFranja(${f.id},'desde',this.value)">
-      </div>
-      <div>
-        <p class="franja-label">Hasta</p>
-        <input type="time" class="franja-time" value="${f.hasta}" step="900"
-          onchange="updateFranja(${f.id},'hasta',this.value)">
-      </div>
-      <button class="btn-remove" onclick="removeFranja(${f.id})" title="Eliminar franja">×</button>`;
-    el.appendChild(row);
+  const el=document.getElementById('franjaList'); el.innerHTML='';
+  if(!franjas.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);padding:8px 0;">Pulsa "+ Añadir franja" para definir un periodo.</p>';document.getElementById('franjaRes').innerHTML='';return;}
+  franjas.forEach(f=>{
+    const r=document.createElement('div'); r.className='franja-row';
+    r.innerHTML=`<div><p class="franja-label">Desde</p><input type="time" value="${f.desde}" step="900" onchange="updateFranja(${f.id},'desde',this.value)"></div>
+      <div><p class="franja-label">Hasta</p><input type="time" value="${f.hasta}" step="900" onchange="updateFranja(${f.id},'hasta',this.value)"></div>
+      <button class="btn-rm" onclick="removeFranja(${f.id})">×</button>`;
+    el.appendChild(r);
   });
-  updateFranjaResumen();
+  updateFranjaRes();
+}
+function updateFranja(id,f,v){const fr=franjas.find(x=>x.id===id);if(fr){fr[f]=v;updateFranjaRes();compute();}}
+function timeToH(t){const[h,m]=t.split(':').map(Number);return h+m/60;}
+function updateFranjaRes(){
+  let tot=0,lines=[];
+  franjas.forEach(f=>{const d=timeToH(f.desde),h=timeToH(f.hasta),dur=h>d?h-d:0;tot+=dur;lines.push(`${f.desde}–${f.hasta} = <span>${fmt(dur,2)} h</span>`);});
+  document.getElementById('franjaRes').innerHTML=lines.join(' · ')+` · Total: <span>${fmt(tot,2)} h</span>`;
 }
 
-function updateFranja(id, field, val){
-  const f = franjas.find(f=>f.id===id);
-  if(f){ f[field]=val; updateFranjaResumen(); compute(); }
+/* ── CÁLCULO PRINCIPAL ── */
+function kwTotal(){
+  return MACHINES.filter(m=>state[m.id].active).reduce((s,m)=>s+(state[m.id].mode==='frio'?m.kw_frio:m.kw_calor),0)
+       + EXTRAS.filter(e=>extraState[e.id].active).reduce((s,e)=>s+extraState[e.id].kw,0);
 }
-
-/* Convierte "HH:MM" a horas decimales (ej: "14:30" → 14.5) */
-function timeToH(t){ const [h,m]=t.split(':').map(Number); return h + m/60; }
-
-/* Resumen textual de las franjas */
-function updateFranjaResumen(){
-  const res = document.getElementById('franjaResumen');
-  if(!franjas.length){ res.innerHTML=''; return; }
-  let totalH = 0;
-  const lines = franjas.map(f => {
-    const d=timeToH(f.desde), h=timeToH(f.hasta);
-    const dur = h>d ? h-d : 0;
-    totalH += dur;
-    return `${f.desde}–${f.hasta} = <span>${fmt(dur,2)} h</span>`;
-  });
-  res.innerHTML = lines.join(' &nbsp;·&nbsp; ') + ` &nbsp;·&nbsp; Total: <span>${fmt(totalH,2)} h</span>`;
-}
-
-/* ══ CÁLCULO PRINCIPAL ══════════════════════════════════════════════════ */
-
-/* Calcula kWh·precio para un segmento [desdeH, hastaH) con precios horarios */
-function costSegmento(desdeH, hastaH, kwTotal){
-  if(hastaH <= desdeH || kwTotal === 0) return { coste:0, kwh:0, tramos:[] };
-  const avg = Object.keys(prices).length
-    ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
-  let coste=0, kwh=0, tramos=[];
-  for(let h=Math.floor(desdeH); h<Math.ceil(hastaH); h++){
-    const ini  = Math.max(desdeH, h);
-    const fin  = Math.min(hastaH, h+1);
-    const frac = fin - ini;          // fracción de hora dentro de este tramo
-    const p    = prices[h] ?? avg;
-    coste += kwTotal * p * frac;
-    kwh   += kwTotal * frac;
-    tramos.push({ h, frac, p, coste: kwTotal*p*frac });
+function costSegmento(d,h,kw){
+  if(h<=d||kw===0) return {coste:0,kwh:0,tramos:[]};
+  const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  let coste=0,kwh=0,tramos=[];
+  for(let i=Math.floor(d);i<Math.ceil(h);i++){
+    const ini=Math.max(d,i),fin=Math.min(h,i+1),frac=fin-ini,p=prices[i]??avg;
+    coste+=kw*p*frac;kwh+=kw*frac;tramos.push({h:i,frac,p,coste:kw*p*frac});
   }
-  return { coste, kwh, tramos };
+  return{coste,kwh,tramos};
 }
-
 function compute(){
-  const bono  = parseFloat(document.getElementById('bonoSel').value) || 0;
-  const acAct = MACHINES.filter(m => state[m.id].active);
-  const exAct = EXTRAS.filter(e => extraState[e.id].active);
-  const kwTotal = acAct.reduce((s,m)=>s+(state[m.id].mode==='frio'?m.kw_frio:m.kw_calor),0)
-                + exAct.reduce((s,e)=>s+extraState[e.id].kw, 0);
-
-  let bruto=0, kwh=0, desgloseParts=[];
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const kw=kwTotal();
+  const acAct=MACHINES.filter(m=>state[m.id].active);
+  const exAct=EXTRAS.filter(e=>extraState[e.id].active);
+  const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  let bruto=0,kwh=0,parts=[];
 
   if(activeTab==='botones'){
-    /* ── Modo botones: horas completas ── */
-    const hrs = [...selHrs].sort((a,b)=>a-b);
-    const avg = Object.keys(prices).length ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
-    hrs.forEach(h => {
-      const p = prices[h] ?? avg;
-      bruto += kwTotal * p;
-      kwh   += kwTotal;
-      desgloseParts.push({ label: String(h).padStart(2,'0')+':00', coste: kwTotal*p, precio: p });
-    });
-    document.getElementById('mInfo').textContent = `${hrs.length}h completas · ${acAct.length+exAct.length} aparatos`;
+    const hrs=[...selHrs].sort((a,b)=>a-b);
+    hrs.forEach(h=>{const p=prices[h]??avg;bruto+=kw*p;kwh+=kw;parts.push({label:fmtH(h),coste:kw*p,precio:p});});
+    document.getElementById('mInfo').textContent=`${hrs.length}h completas · ${acAct.length+exAct.length} aparatos`;
   } else {
-    /* ── Modo franjas: fracciones de hora ── */
-    const vistosH = new Set();
-    franjas.forEach(f => {
-      const d = timeToH(f.desde), h = timeToH(f.hasta);
-      if(h <= d) return;
-      const seg = costSegmento(d, h, kwTotal);
-      bruto += seg.coste;
-      kwh   += seg.kwh;
-      seg.tramos.forEach(t => {
-        const key = t.h;
-        if(!vistosH.has(key)){
-          vistosH.add(key);
-          desgloseParts.push({ label: String(t.h).padStart(2,'0')+':00', coste: t.coste, precio: t.p, frac: t.frac });
-        } else {
-          const ex = desgloseParts.find(x=>x.label===String(t.h).padStart(2,'0')+':00');
-          if(ex) ex.coste += t.coste;
-        }
+    const seen=new Set();
+    franjas.forEach(f=>{
+      const seg=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw);
+      bruto+=seg.coste;kwh+=seg.kwh;
+      seg.tramos.forEach(t=>{
+        if(!seen.has(t.h)){seen.add(t.h);parts.push({label:fmtH(t.h),coste:t.coste,precio:t.p});}
+        else{const ex=parts.find(x=>x.label===fmtH(t.h));if(ex)ex.coste+=t.coste;}
       });
     });
-    const totalH = franjas.reduce((s,f)=>{ const d=timeToH(f.desde),h=timeToH(f.hasta); return s+(h>d?h-d:0); },0);
-    document.getElementById('mInfo').textContent = `${fmt(totalH,2)}h · ${acAct.length+exAct.length} aparatos`;
+    const tot=franjas.reduce((s,f)=>{const d=timeToH(f.desde),h=timeToH(f.hasta);return s+(h>d?h-d:0);},0);
+    document.getElementById('mInfo').textContent=`${fmt(tot,2)}h · ${acAct.length+exAct.length} aparatos`;
   }
 
-  const ahorro = bruto*(bono/100);
-  const final  = bruto-ahorro;
+  const ahorro=bruto*(bono/100),final=bruto-ahorro;
+  document.getElementById('mBruto').textContent=bruto>0?fmt(bruto,3)+' €':'—';
+  document.getElementById('mAhorro').textContent=ahorro>0?'-'+fmt(ahorro,3)+' €':'—';
+  document.getElementById('mAhorroPct').textContent=bono>0?bono+'% bono':'sin descuento';
+  document.getElementById('mFinal').textContent=bruto>0?fmt(final,3)+' €':'—';
+  document.getElementById('mKwh').textContent=kwh>0?fmt(kwh,2)+' kWh':'—';
 
-  document.getElementById('mBruto').textContent    = bruto>0 ? fmt(bruto,3)+' €' : '—';
-  document.getElementById('mAhorro').textContent   = ahorro>0 ? '-'+fmt(ahorro,3)+' €' : '—';
-  document.getElementById('mAhorroPct').textContent= bono>0 ? bono+'% bono social' : 'sin descuento';
-  document.getElementById('mFinal').textContent    = bruto>0 ? fmt(final,3)+' €' : '—';
-  document.getElementById('mKwh').textContent      = kwh>0  ? fmt(kwh,2)+' kWh' : '—';
-
-  /* Desglose */
-  const dc=document.getElementById('desgloseCard'), de=document.getElementById('desglose');
-  if(desgloseParts.length && Object.keys(prices).length){
-    dc.style.display='block'; de.innerHTML='';
-    desgloseParts.sort((a,b)=>a.label.localeCompare(b.label)).forEach(p=>{
-      const div=document.createElement('div'); div.className='desglose-item';
-      div.innerHTML=`<div class="desglose-h">${p.label}</div><div class="desglose-p">${fmt(p.coste,3)} €</div><div class="desglose-c">${fmt(p.precio*1000,2)} €/MWh</div>`;
-      de.appendChild(div);
+  const dc=document.getElementById('desgloseCard'),de=document.getElementById('desglose');
+  if(parts.length&&Object.keys(prices).length){
+    dc.style.display='block';de.innerHTML='';
+    parts.sort((a,b)=>a.label.localeCompare(b.label)).forEach(p=>{
+      const d=document.createElement('div');d.className='di';
+      d.innerHTML=`<div class="di-h">${p.label}</div><div class="di-p">${fmt(p.coste,3)} €</div><div class="di-c">${fmt(p.precio*1000,2)} €/MWh</div>`;
+      de.appendChild(d);
     });
-  } else { dc.style.display='none'; }
-
+  } else dc.style.display='none';
   updateChart();
 }
 
-/* ══ GRÁFICA ════════════════════════════════════════════════════════════ */
+/* ── GRÁFICA PRINCIPAL ── */
 function updateChart(){
-  const labels = Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
-  const data   = labels.map((_,i)=>prices[i]!==undefined?+(prices[i]*1000).toFixed(2):null);
-
-  /* Color: verde si la hora está activa en cualquiera de los dos modos */
-  const activaEnFranjas = (h) => franjas.some(f=>{ const d=timeToH(f.desde),u=timeToH(f.hasta); return u>d && h<u && h+1>d; });
-  const colors = labels.map((_,i)=> activeTab==='botones' ? (selHrs.has(i)?'#1D9E75':'#378ADD') : (activaEnFranjas(i)?'#1D9E75':'#378ADD'));
-
+  const labels=Array.from({length:24},(_,i)=>fmtH(i));
+  const data=labels.map((_,i)=>prices[i]!==undefined?+(prices[i]*1000).toFixed(2):null);
+  const isActive=i=>activeTab==='botones'?selHrs.has(i):franjas.some(f=>{const d=timeToH(f.desde),h=timeToH(f.hasta);return h>d&&i<h&&i+1>d;});
+  const colors=labels.map((_,i)=>isActive(i)?'#1D9E75':'#378ADD');
+  const datasets=[{label:'€/MWh',data,backgroundColor:colors,borderRadius:3,borderSkipped:false,yAxisID:'y'}];
+  if(showTemp&&Object.keys(temps).length){
+    datasets.push({label:'°C',data:labels.map((_,i)=>temps[i]??null),type:'line',borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,.1)',borderWidth:2,pointRadius:3,fill:true,yAxisID:'y2',tension:.3});
+  }
   if(chartObj) chartObj.destroy();
-  chartObj = new Chart(document.getElementById('chart'),{
-    type:'bar',
-    data:{ labels, datasets:[{ label:'€/MWh', data, backgroundColor:colors, borderRadius:3, borderSkipped:false }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`${fmt(c.parsed.y,2)} €/MWh` } } },
-      scales:{
-        x:{ ticks:{ color:'#8b92a5', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:12 }, grid:{color:'rgba(255,255,255,0.04)'} },
-        y:{ ticks:{ color:'#8b92a5', font:{size:10}, callback:v=>fmt(v,2)+'€' }, grid:{color:'rgba(255,255,255,0.04)'} }
-      }
-    }
+  const scales={
+    x:{ticks:{color:'#8b92a5',font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:12},grid:{color:'rgba(255,255,255,.04)'}},
+    y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>fmt(v,2)+'€'},grid:{color:'rgba(255,255,255,.04)'}},
+  };
+  if(showTemp) scales.y2={position:'right',ticks:{color:'#EF9F27',font:{size:10},callback:v=>v+'°'},grid:{display:false}};
+  chartObj=new Chart(document.getElementById('chart'),{
+    type:'bar',data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,2)} ${c.dataset.label}`}}},
+      scales}
   });
 }
 
-/* ══ CARGA ESIOS ════════════════════════════════════════════════════════ */
-async function loadPrices(){
-  const date=document.getElementById('datePicker').value;
-  const btn=document.getElementById('loadBtn'), txt=document.getElementById('loadBtnText');
-  btn.disabled=true; txt.innerHTML='<span class="spinner"></span> Cargando...';
+/* ── TEMPERATURA AEMET ── */
+async function toggleTemp(){
+  showTemp=!showTemp;
+  document.getElementById('tempLegend').style.display=showTemp?'flex':'none';
+  if(showTemp&&!Object.keys(temps).length){
+    const date=document.getElementById('datePicker').value;
+    const st=document.getElementById('tempStatus');
+    st.style.display='block';st.textContent='Cargando temperatura de AEMET...';
+    try{
+      const r=await fetch(`/api/temperature?date=${date}`);
+      const d=await r.json();
+      if(r.ok){temps=d.temps;st.textContent=`Temp. ${date}: mín ${fmt(d.min,1)}°C · máx ${fmt(d.max,1)}°C (AEMET)`;}
+      else{st.textContent='⚠ '+d.error;showTemp=false;document.getElementById('tempLegend').style.display='none';}
+    }catch(e){st.textContent='Error AEMET: '+e.message;showTemp=false;}
+  }
+  updateChart();
+}
+
+/* ── CARGA ESIOS ── */
+async function loadPrices(dateVal){
+  const date=dateVal||document.getElementById('datePicker').value;
+  const btn=document.getElementById('loadBtn'),txt=document.getElementById('loadBtnText');
+  btn.disabled=true;txt.innerHTML='<span class="spinner"></span> Cargando...';
   setStatus('warn','Consultando ESIOS...');
   try{
     const r=await fetch(`/api/prices?date=${date}`);
     const d=await r.json();
-    if(!r.ok){ setStatus('err',d.error||'Error desconocido'); return; }
-    prices={};
-    Object.entries(d.hours).forEach(([h,p])=>prices[+h]=p);
-    const mn=fmt(d.min*1000,2), mx=fmt(d.max*1000,2), av=fmt(d.avg*1000,2);
-    setStatus('ok',`${Object.keys(prices).length} horas · media ${av} · mín ${mn} (${String(d.min_h).padStart(2,'0')}h) · máx ${mx} (${String(d.max_h).padStart(2,'0')}h) €/MWh`);
+    if(!r.ok){setStatus('err',d.error||'Error');return null;}
+    prices={};Object.entries(d.hours).forEach(([h,p])=>prices[+h]=p);
+    temps={};showTemp=false;document.getElementById('tempLegend').style.display='none';
+    const s=document.getElementById('tempStatus');if(s)s.style.display='none';
+    setStatus('ok',`${Object.keys(prices).length} horas · media ${fmt(d.avg*1000,2)} · mín ${fmt(d.min*1000,2)} (${fmtH(d.min_h)}) · máx ${fmt(d.max*1000,2)} (${fmtH(d.max_h)}) €/MWh`);
     document.getElementById('chartDate').textContent=date;
-    buildHours(); compute();
-  } catch(e){ setStatus('err','Error de red: '+e.message); }
-  finally{ btn.disabled=false; txt.textContent='Cargar precios'; }
+    buildHours();compute();
+    return d;
+  }catch(e){setStatus('err','Error: '+e.message);return null;}
+  finally{btn.disabled=false;txt.textContent='Cargar precios';}
 }
-
-function setStatus(type,msg){
-  document.getElementById('statusDot').className='dot dot-'+type;
-  document.getElementById('statusText').textContent=msg;
-}
-
-document.getElementById('datePicker').addEventListener('change', loadPrices);
-
-buildMachines(); buildExtras(); buildHours(); buildFranjas(); updateChart();
+function setStatus(t,m){document.getElementById('statusDot').className='dot dot-'+t;document.getElementById('statusText').textContent=m;}
+document.getElementById('datePicker').addEventListener('change',()=>{loadPrices();});
 loadPrices();
+
+/* ── COMPARAR DÍAS ── */
+async function runCompare(){
+  const dA=document.getElementById('cmpDateA').value, dB=document.getElementById('cmpDateB').value;
+  if(!dA||!dB) return;
+  const btn=document.getElementById('cmpBtnTxt');
+  btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const [rA,rB]=await Promise.all([fetch(`/api/prices?date=${dA}`),fetch(`/api/prices?date=${dB}`)]);
+    const [dDataA,dDataB]=await Promise.all([rA.json(),rB.json()]);
+    if(!rA.ok||!rB.ok){alert('Error cargando precios');return;}
+
+    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+    const kw=kwTotal();
+    const calcCost=(hours,priceMap)=>{
+      const avg=Object.values(priceMap).reduce((a,b)=>a+b,0)/Object.keys(priceMap).length;
+      return [...selHrs].reduce((s,h)=>s+kw*(priceMap[h]??avg),0);
+    };
+    const pA={},pB={};
+    Object.entries(dDataA.hours).forEach(([h,p])=>pA[+h]=p);
+    Object.entries(dDataB.hours).forEach(([h,p])=>pB[+h]=p);
+    const cA=calcCost(selHrs,pA), cB=calcCost(selHrs,pB);
+    const winner=cA<=cB?'A':'B';
+
+    const cards=document.getElementById('compareCards'); cards.innerHTML='';
+    [[dA,pA,cA,'A'],[dB,pB,cB,'B']].forEach(([date,pm,cost,id])=>{
+      const isW=id===winner;
+      const div=document.createElement('div');div.className='compare-card'+(isW?' winner':' loser');
+      div.innerHTML=`<p style="font-size:11px;color:var(--muted);margin-bottom:4px;">${isW?'✅ MÁS BARATO':''}</p>
+        <p style="font-size:16px;font-weight:600;margin-bottom:8px;">${date}</p>
+        <p style="font-size:24px;font-weight:700;color:${isW?'var(--green)':'var(--muted)'};">${fmt(cost,3)} €</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;">con bono: ${fmt(cost*(1-bono/100),3)} €</p>
+        <p style="font-size:12px;color:var(--muted);">media ${fmt(Object.values(pm).reduce((a,b)=>a+b,0)/Object.keys(pm).length*1000,2)} €/MWh</p>`;
+      cards.appendChild(div);
+    });
+
+    if(winner==='A') cards.insertAdjacentHTML('afterend',`<p style="font-size:13px;color:var(--green);margin-top:8px;margin-bottom:8px;">Ahorro eligiendo ${dA}: ${fmt(Math.abs(cA-cB),3)} €</p>`);
+    else cards.insertAdjacentHTML('afterend',`<p style="font-size:13px;color:var(--green);margin-top:8px;margin-bottom:8px;">Ahorro eligiendo ${dB}: ${fmt(Math.abs(cA-cB),3)} €</p>`);
+
+    const labels=Array.from({length:24},(_,i)=>fmtH(i));
+    if(compareChartObj) compareChartObj.destroy();
+    compareChartObj=new Chart(document.getElementById('compareChart'),{
+      type:'line',
+      data:{labels,datasets:[
+        {label:dA,data:labels.map((_,i)=>pA[i]!==undefined?+(pA[i]*1000).toFixed(2):null),borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.1)',borderWidth:2,tension:.3,fill:true},
+        {label:dB,data:labels.map((_,i)=>pB[i]!==undefined?+(pB[i]*1000).toFixed(2):null),borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,.1)',borderWidth:2,tension:.3,fill:true},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{color:'#8b92a5',font:{size:11}}}},
+        scales:{x:{ticks:{color:'#8b92a5',font:{size:10}}},y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>v+'€'}}}}
+    });
+    document.getElementById('compareResult').style.display='block';
+  }finally{btn.textContent='Comparar';}
+}
+
+/* ── HORA ÓPTIMA ── */
+async function runOptimal(){
+  const date=document.getElementById('optDate').value;
+  const dur=parseFloat(document.getElementById('optDuration').value)||2;
+  const top=parseInt(document.getElementById('optTop').value)||5;
+  const kw=kwTotal();
+  if(!kw){alert('Activa al menos un aparato en la calculadora.');return;}
+  const btn=document.getElementById('optBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  try{
+    let priceMap=prices;
+    if(date!==document.getElementById('datePicker').value){
+      const r=await fetch(`/api/prices?date=${date}`);
+      const d=await r.json();
+      if(!r.ok){alert(d.error);return;}
+      priceMap={};Object.entries(d.hours).forEach(([h,p])=>priceMap[+h]=p);
+    }
+    const avg=Object.values(priceMap).reduce((a,b)=>a+b,0)/Object.keys(priceMap).length;
+    const results=[];
+    const step=0.25;
+    for(let start=0;start<=24-dur;start+=step){
+      const {coste,kwh}=costSegmento2(start,start+dur,kw,priceMap,avg);
+      results.push({start,end:start+dur,coste,kwh});
+    }
+    results.sort((a,b)=>a.coste-b.coste);
+    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+    const rows=document.getElementById('optimalRows');rows.innerHTML='';
+    document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h`;
+    results.slice(0,top).forEach((r,i)=>{
+      const hI=Math.floor(r.start),mI=Math.round((r.start%1)*60);
+      const hF=Math.floor(r.end),mF=Math.round((r.end%1)*60);
+      const tI=`${String(hI).padStart(2,'0')}:${String(mI).padStart(2,'0')}`;
+      const tF=`${String(hF).padStart(2,'0')}:${String(mF).padStart(2,'0')}`;
+      const div=document.createElement('div');div.className='optimal-row'+(i===0?' best':'');
+      div.innerHTML=`<span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${tI} → ${tF}</span>
+        <span>${fmt(r.coste,3)} € bruto · ${fmt(r.coste*(1-bono/100),3)} € con bono</span>
+        <span style="color:var(--muted);font-size:12px;">${fmt(r.kwh,2)} kWh</span>`;
+      rows.appendChild(div);
+    });
+    document.getElementById('optimalResult').style.display='block';
+  }finally{btn.textContent='Calcular hora óptima';}
+}
+function costSegmento2(d,h,kw,priceMap,avg){
+  let coste=0,kwh=0;
+  for(let i=Math.floor(d);i<Math.ceil(h);i++){
+    const ini=Math.max(d,i),fin=Math.min(h,i+1),frac=fin-ini,p=priceMap[i]??avg;
+    coste+=kw*p*frac;kwh+=kw*frac;
+  }
+  return{coste,kwh};
+}
+
+/* ── ESTIMACIÓN MENSUAL ── */
+function buildWeekPattern(){
+  const el=document.getElementById('weekPattern');el.innerHTML='';
+  DAYS.forEach((d,i)=>{
+    const row=document.createElement('div');row.className='monthly-day';
+    row.innerHTML=`<span style="min-width:90px;font-size:13px;color:var(--muted);">${d}</span>
+      <input type="range" min="0" max="24" step="0.5" value="${weekHours[i]}" style="flex:1;accent-color:var(--green);" oninput="weekHours[${i}]=parseFloat(this.value);document.getElementById('wh${i}').textContent=fmt(this.value*1,1)+' h';">
+      <span id="wh${i}" style="min-width:40px;text-align:right;font-size:13px;color:var(--green);font-weight:600;">${fmt(weekHours[i],1)} h</span>`;
+    el.appendChild(row);
+  });
+}
+function setWeekPattern(h){weekHours=weekHours.map(()=>h);buildWeekPattern();}
+
+async function runMonthly(){
+  const kw=kwTotal();
+  if(!kw){alert('Activa al menos un aparato.');return;}
+  const btn=document.getElementById('mthBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const r=await fetch('/api/prices/weekly-avg');
+    const d=await r.json();
+    if(r.ok===false||d.error){alert(d.error||'Error');return;}
+
+    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+    const now=new Date(), year=now.getFullYear(), month=now.getMonth();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    let totalBruto=0,totalKwh=0;
+    const dayResults=[];
+
+    for(let day=1;day<=daysInMonth;day++){
+      const dt=new Date(year,month,day);
+      const dow=dt.getDay()===0?6:dt.getDay()-1;
+      const hrs=weekHours[dow];
+      const avgPrices=d[dow]||{};
+      const avg=Object.keys(avgPrices).length?Object.values(avgPrices).reduce((a,b)=>a+b,0)/Object.keys(avgPrices).length:0.15;
+      const cost=kw*hrs*avg;
+      totalBruto+=cost;totalKwh+=kw*hrs;
+      dayResults.push({day,dow,hrs,cost,avg});
+    }
+
+    const maxCost=Math.max(...dayResults.map(x=>x.cost));
+    document.getElementById('mthBruto').textContent=fmt(totalBruto,2)+' €';
+    document.getElementById('mthFinal').textContent=fmt(totalBruto*(1-bono/100),2)+' €';
+    document.getElementById('mthBonoPct').textContent=bono>0?bono+'% bono social':'sin descuento';
+    document.getElementById('mthKwh').textContent=fmt(totalKwh,1)+' kWh';
+    document.getElementById('mthDaily').textContent=fmt(totalBruto/daysInMonth,3)+' €';
+
+    const el=document.getElementById('monthlyDays');el.innerHTML='';
+    dayResults.forEach(r=>{
+      const w=maxCost>0?Math.round(r.cost/maxCost*100):0;
+      const div=document.createElement('div');div.className='monthly-day';
+      div.innerHTML=`<span style="min-width:70px;font-size:12px;color:var(--muted);">${r.day}/${(month+1).toString().padStart(2,'0')} ${DAYS[r.dow].slice(0,3)}</span>
+        <div class="monthly-bar-wrap"><div class="monthly-bar" style="width:${w}%;"></div></div>
+        <span class="monthly-cost">${fmt(r.cost,3)} €</span>
+        <span style="font-size:11px;color:var(--muted);min-width:30px;">${fmt(r.hrs,1)}h</span>`;
+      el.appendChild(div);
+    });
+    document.getElementById('monthlyResult').style.display='block';
+  }finally{btn.textContent='Estimar coste mensual';}
+}
+
+/* ── PROMETHEUS ── */
+async function loadPrometheus(){
+  const url=document.getElementById('promUrl').value.trim();
+  const btn=document.getElementById('promBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const r=await fetch(`/api/prometheus/monthly?url=${encodeURIComponent(url)}`);
+    const d=await r.json();
+    if(!r.ok){alert(d.error);return;}
+    document.getElementById('promMonthly').textContent=fmt(d.monthly_eur,3)+' €';
+    document.getElementById('promToday').textContent=fmt(d.today_eur,3)+' €';
+    document.getElementById('promMonth').textContent=d.month;
+    document.getElementById('prometheusResult').style.display='block';
+  }catch(e){alert('Error conectando a Prometheus: '+e.message);}
+  finally{btn.textContent='Cargar datos';}
+}
+
+/* ── HISTORIAL ── */
+function saveToHistory(){
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const kw=kwTotal();const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  let bruto=0;
+  if(activeTab==='botones'){ [...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);}); }
+  else{ franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;}); }
+  if(bruto===0){alert('No hay nada que guardar.');return;}
+  const hist=JSON.parse(localStorage.getItem('acHist')||'[]');
+  hist.unshift({date:document.getElementById('datePicker').value,bruto,final:bruto*(1-bono/100),bono,kw,ts:Date.now(),hrs:activeTab==='botones'?[...selHrs].length:franjas.length+' franjas'});
+  localStorage.setItem('acHist',JSON.stringify(hist.slice(0,20)));
+  renderHistory();
+  alert('Guardado en historial ✅');
+}
+function renderHistory(){
+  const hist=JSON.parse(localStorage.getItem('acHist')||'[]');
+  const el=document.getElementById('historyList');
+  if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">Aún no hay cálculos guardados.</p>';return;}
+  el.innerHTML='';
+  hist.forEach((h,i)=>{
+    const div=document.createElement('div');div.className='hist-item';
+    div.innerHTML=`<span class="hist-date">${h.date}</span>
+      <span class="hist-cost">${fmt(h.final,3)} €</span>
+      <span class="hist-detail">${fmt(h.bruto,3)} € bruto · ${h.bono}% bono · ${fmt(h.kw,2)} kW · ${h.hrs} h</span>
+      <button class="btn-rm" onclick="deleteHist(${i})">×</button>`;
+    el.appendChild(div);
+  });
+}
+function deleteHist(i){const h=JSON.parse(localStorage.getItem('acHist')||'[]');h.splice(i,1);localStorage.setItem('acHist',JSON.stringify(h));renderHistory();}
+function clearHistory(){if(confirm('¿Borrar todo el historial?')){localStorage.removeItem('acHist');renderHistory();}}
+
+/* ── EXPORTAR PDF ── */
+function exportPDF(){
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const kw=kwTotal();const avg=Object.keys(prices).length?Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length:0;
+  let bruto=0;
+  if(activeTab==='botones'){[...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);});}
+  else{franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});}
+  const final=bruto*(1-bono/100);
+  const date=document.getElementById('datePicker').value;
+  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>`${m.label} (${state[m.id].mode})`).concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>`${e.label} ${fmt(extraState[e.id].kw,2)}kW`)).join(', ')||'—';
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe AC ${date}</title>
+  <style>body{font-family:Arial,sans-serif;padding:2rem;color:#111;}h1{font-size:20px;}table{width:100%;border-collapse:collapse;margin:1rem 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f5f5f5;}
+  .total{font-size:22px;font-weight:bold;color:#1D9E75;}.muted{color:#666;font-size:12px;}</style></head><body>
+  <h1>⚡ Informe de consumo eléctrico</h1>
+  <p class="muted">Generado el ${new Date().toLocaleString('es-ES')} · Gabba82/ac-cost-web</p>
+  <table><tr><th>Fecha</th><td>${date}</td></tr>
+  <tr><th>Aparatos activos</th><td>${aparatos}</td></tr>
+  <tr><th>Potencia total</th><td>${fmt(kw,2)} kW</td></tr>
+  <tr><th>Coste bruto</th><td>${fmt(bruto,3)} €</td></tr>
+  <tr><th>Descuento bono social</th><td>${bono}% (−${fmt(bruto*bono/100,3)} €)</td></tr>
+  <tr><th>Coste final</th><td><strong class="total">${fmt(final,3)} €</strong></td></tr>
+  <tr><th>Precio medio PVPC</th><td>${fmt(avg*1000,2)} €/MWh</td></tr></table>
+  <script>window.print();window.close();<\/script></body></html>`);
+}
+
+/* Botón guardar en historial */
+document.querySelector('.metrics').insertAdjacentHTML('afterend',
+  '<div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem;"><button class="ghost" onclick="saveToHistory()">💾 Guardar en historial</button></div>');
 </script>
 </body>
 </html>
