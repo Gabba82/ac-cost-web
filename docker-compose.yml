@@ -1,0 +1,15 @@
+services:
+  ac-cost-web:
+    build: .
+    container_name: ac-cost-web
+    restart: unless-stopped
+    ports:
+      - "5656:5656"
+    env_file:
+      - .env
+    networks:
+      - observatorio_default
+
+networks:
+  observatorio_default:
+    external: true
