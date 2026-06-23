@@ -213,20 +213,33 @@ def temperature():
             return jsonify({"error": f"AEMET no devolvió datos para municipio {municipio}. Comprueba el código en ajustes."}), 502
         r2 = requests.get(data_url, timeout=15)
         r2.raise_for_status()
+        # AEMET devuelve latin-1, no UTF-8
+        prediccion = json.loads(r2.content.decode("latin-1"))
         temps = {}
-        for mun in r2.json():
+        for mun in prediccion:
             for dia in mun.get("prediccion", {}).get("dia", []):
-                if dia.get("fecha", "").startswith(date_str):
-                    for t in dia.get("temperatura", []):
-                        try:
-                            h = int(t.get("periodo", -1))
+                # AEMET devuelve solo horas futuras — buscar en todos los dias
+                # que coincidan con date_str (fecha viene como "2026-06-23T00:00:00")
+                fecha_dia = dia.get("fecha", "")[:10]
+                if fecha_dia != date_str:
+                    continue
+                for t in dia.get("temperatura", []):
+                    try:
+                        periodo = str(t.get("periodo", "")).strip()
+                        # periodo es hora en formato "20", "08", etc.
+                        if len(periodo) == 2 and periodo.isdigit():
+                            h = int(periodo)
                             v = float(t.get("value", 0))
                             if 0 <= h <= 23:
                                 temps[h] = v
-                        except (ValueError, TypeError):
-                            pass
+                    except (ValueError, TypeError):
+                        pass
         if not temps:
-            return jsonify({"error": f"Sin datos de temperatura para {date_str} (AEMET solo tiene ~48h de predicción horaria)"}), 404
+            return jsonify({
+                "error": f"AEMET solo publica horas futuras. No hay datos horarios para {date_str} "
+                         f"(puede que ya hayan pasado todas las horas del día). "
+                         f"Prueba con la fecha de mañana.",
+            }), 404
         result = {"date": date_str, "municipio": municipio, "temps": temps,
                   "min": min(temps.values()), "max": max(temps.values())}
         cache_set(f"temp:{date_str}:{municipio}", result, ttl=21600)
