@@ -388,7 +388,10 @@ function setStatus(type,msg){
   document.getElementById('statusText').textContent=msg;
 }
 
+document.getElementById('datePicker').addEventListener('change', loadPrices);
+
 buildMachines(); buildExtras(); buildHours(); updateChart();
+loadPrices();
 </script>
 </body>
 </html>
