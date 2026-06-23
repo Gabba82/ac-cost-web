@@ -7,80 +7,97 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0f1117; --bg2: #1a1d27; --bg3: #22263a;
-    --border: rgba(255,255,255,0.08); --text: #e8eaf0; --muted: #8b92a5;
-    --green: #1D9E75; --green-dim: rgba(29,158,117,0.15);
-    --amber: #EF9F27; --red: #E24B4A; --blue: #378ADD;
-    --radius: 10px; --radius-sm: 6px;
+    --bg:#0f1117; --bg2:#1a1d27; --bg3:#22263a;
+    --border:rgba(255,255,255,0.08); --text:#e8eaf0; --muted:#8b92a5;
+    --green:#1D9E75; --green-dim:rgba(29,158,117,0.15);
+    --amber:#EF9F27; --red:#E24B4A; --blue:#378ADD;
+    --radius:10px; --radius-sm:6px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; }
-  .app { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
-  header h1 { font-size: 18px; font-weight: 600; }
-  .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--green-dim); color: var(--green); font-weight: 500; }
-  .status-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--bg2); border: 1px solid var(--border); margin-bottom: 1.25rem; font-size: 13px; color: var(--muted); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s; }
-  .dot-ok { background: var(--green); } .dot-warn { background: var(--amber); } .dot-err { background: var(--red); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
-  @media(max-width:600px) { .row2 { grid-template-columns: 1fr; } }
-  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
-  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.875rem; }
-  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
-  input[type=date], select { width: 100%; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-size: 14px; outline: none; }
-  input[type=date]:focus, select:focus { border-color: var(--green); }
-  button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: var(--radius-sm); background: var(--green); color: white; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
-  button.primary:hover { opacity: 0.85; } button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.ghost { padding: 5px 12px; border-radius: var(--radius-sm); background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 12px; cursor: pointer; transition: all 0.15s; }
-  button.ghost:hover { border-color: var(--text); color: var(--text); }
-  .machine-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .machine-row:last-child { border-bottom: none; }
-  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
-  .slider::before { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); top: 2px; left: 2px; transition: all 0.2s; }
-  .toggle input:checked + .slider { background: var(--green); border-color: var(--green); }
-  .toggle input:checked + .slider::before { left: 18px; background: white; }
-  .machine-name { flex: 1; font-size: 13px; }
-  .machine-kw { font-size: 12px; color: var(--muted); min-width: 56px; text-align: right; }
-  .mode-sel { width: auto; padding: 4px 8px; font-size: 12px; }
-  .hour-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
-  .hour-btn { height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg3); color: var(--muted); font-size: 11px; cursor: pointer; transition: all 0.12s; font-family: inherit; }
-  .hour-btn:hover:not(.active) { border-color: rgba(255,255,255,0.2); color: var(--text); }
-  .hour-btn.active { background: var(--green); border-color: var(--green); color: white; font-weight: 500; }
-  .hour-btn.cheapest:not(.active) { border-color: var(--green); color: var(--green); }
-  .hour-btn.priciest:not(.active) { border-color: var(--red); color: var(--red); }
-  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
-  @media(max-width:600px) { .metrics { grid-template-columns: 1fr 1fr; } }
-  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.875rem 1rem; }
-  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1.2; }
-  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-  .metric.highlight { border-color: var(--green); }
-  .metric.highlight .metric-value { color: var(--green); }
-  .desglose { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 0.75rem; }
-  @media(max-width:600px) { .desglose { grid-template-columns: repeat(4, 1fr); } }
-  .desglose-item { background: var(--bg3); border: 1px solid var(--green-dim); border-radius: var(--radius-sm); padding: 6px 4px; text-align: center; }
-  .desglose-h { font-size: 11px; color: var(--muted); }
-  .desglose-p { font-size: 12px; font-weight: 600; color: var(--text); margin: 2px 0; }
-  .desglose-c { font-size: 10px; color: var(--muted); }
-  .legend { display: flex; gap: 16px; font-size: 11px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
-  .legend span { display: flex; align-items: center; gap: 5px; }
-  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-  .bono-info { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
-  .bono-info strong { color: var(--amber); }
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;}
+  .app{max-width:900px;margin:0 auto;padding:1.5rem 1rem 4rem;}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;}
+  header h1{font-size:18px;font-weight:600;}
+  .pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--green-dim);color:var(--green);font-weight:500;}
+  .status-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid var(--border);margin-bottom:1.25rem;font-size:13px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background 0.3s;}
+  .dot-ok{background:var(--green);}.dot-warn{background:var(--amber);}.dot-err{background:var(--red);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+  @media(max-width:600px){.row2{grid-template-columns:1fr;}}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.875rem;}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
+  input[type=date],input[type=time],select{width:100%;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
+  input[type=date]:focus,input[type=time]:focus,select:focus{border-color:var(--green);}
+  button.primary{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--radius-sm);background:var(--green);color:white;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;}
+  button.primary:hover{opacity:0.85;}button.primary:disabled{opacity:0.4;cursor:not-allowed;}
+  button.ghost{padding:5px 12px;border-radius:var(--radius-sm);background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all 0.15s;}
+  button.ghost:hover{border-color:var(--text);color:var(--text);}
+  .machine-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .machine-row:last-child{border-bottom:none;}
+  .toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;border-radius:20px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:background 0.2s;}
+  .slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:all 0.2s;}
+  .toggle input:checked+.slider{background:var(--green);border-color:var(--green);}
+  .toggle input:checked+.slider::before{left:18px;background:white;}
+  .machine-name{flex:1;font-size:13px;}
+  .machine-kw{font-size:12px;color:var(--muted);min-width:56px;text-align:right;}
+  .mode-sel{width:auto;padding:4px 8px;font-size:12px;}
+  .hour-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;}
+  .hour-btn{height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.12s;font-family:inherit;}
+  .hour-btn:hover:not(.active){border-color:rgba(255,255,255,0.2);color:var(--text);}
+  .hour-btn.active{background:var(--green);border-color:var(--green);color:white;font-weight:500;}
+  .hour-btn.cheapest:not(.active){border-color:var(--green);color:var(--green);}
+  .hour-btn.priciest:not(.active){border-color:var(--red);color:var(--red);}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
+  @media(max-width:600px){.metrics{grid-template-columns:1fr 1fr;}}
+  .metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;}
+  .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .metric-value{font-size:22px;font-weight:600;color:var(--text);line-height:1.2;}
+  .metric-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .metric.highlight{border-color:var(--green);}
+  .metric.highlight .metric-value{color:var(--green);}
+  .desglose{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:0.75rem;}
+  @media(max-width:600px){.desglose{grid-template-columns:repeat(4,1fr);}}
+  .desglose-item{background:var(--bg3);border:1px solid var(--green-dim);border-radius:var(--radius-sm);padding:6px 4px;text-align:center;}
+  .desglose-h{font-size:11px;color:var(--muted);}
+  .desglose-p{font-size:12px;font-weight:600;color:var(--text);margin:2px 0;}
+  .desglose-c{font-size:10px;color:var(--muted);}
+  .legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .bono-info{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;}
+  .bono-info strong{color:var(--amber);}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .extra-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .extra-row:last-child{border-bottom:none;}
+  .extra-label{min-width:160px;font-size:13px;color:var(--text);}
+  .extra-slider{flex:1;accent-color:var(--amber);cursor:pointer;}
+  .extra-val{min-width:54px;text-align:right;font-size:13px;font-weight:600;color:var(--amber);}
+  .extra-toggle{flex-shrink:0;}
 
-  /* Slider aparato extra */
-  .extra-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .extra-row:last-child { border-bottom: none; }
-  .extra-label { min-width: 140px; font-size: 13px; color: var(--text); }
-  .extra-slider { flex: 1; accent-color: var(--amber); cursor: pointer; }
-  .extra-val { min-width: 54px; text-align: right; font-size: 13px; font-weight: 600; color: var(--amber); }
-  .extra-toggle { flex-shrink: 0; }
+  /* Pestañas */
+  .tabs{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid var(--border);}
+  .tab{padding:7px 16px;font-size:13px;cursor:pointer;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;font-family:inherit;}
+  .tab.active{color:var(--green);border-bottom-color:var(--green);}
+  .tab:hover:not(.active){color:var(--text);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
 
-  footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 2rem; }
+  /* Franjas */
+  .franja-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);}
+  .franja-row:last-child{border-bottom:none;}
+  .franja-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .franja-time{width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
+  .franja-time:focus{border-color:var(--green);}
+  .btn-remove{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
+  .btn-remove:hover{border-color:var(--red);color:var(--red);}
+  .franja-resumen{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8;}
+  .franja-resumen span{color:var(--amber);font-weight:600;}
+
+  footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
 </style>
 </head>
 <body>
@@ -102,7 +119,7 @@
       <label>Fecha</label>
       <input type="date" id="datePicker">
     </div>
-    <div style="display:flex; align-items:flex-end; gap:8px;">
+    <div style="display:flex;align-items:flex-end;gap:8px;">
       <button class="primary" id="loadBtn" onclick="loadPrices()">
         <span id="loadBtnText">Cargar precios</span>
       </button>
@@ -117,27 +134,41 @@
   <div class="card" style="margin-bottom:1.25rem;">
     <p class="card-title">Otros aparatos</p>
     <div id="extraList"></div>
-    <p style="font-size:11px; color:var(--muted); margin-top:10px;">
-      Activa el aparato y ajusta los kW con el deslizador. Se suman al total de las horas seleccionadas.
-    </p>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;">Activa el aparato y ajusta los kW. Se suman al total de las horas seleccionadas.</p>
   </div>
 
   <div class="card" style="margin-bottom:1.25rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
       <p class="card-title" style="margin:0;">Horas de uso</p>
-      <div style="display:flex; gap:6px;">
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('botones')">Por horas</button>
+      <button class="tab" onclick="switchTab('franjas')">Franjas horarias</button>
+    </div>
+
+    <!-- Tab 1: botones de hora -->
+    <div class="tab-panel active" id="tab-botones">
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px;">
         <button class="ghost" onclick="setHours('all')">Todas</button>
         <button class="ghost" onclick="setHours('none')">Ninguna</button>
         <button class="ghost" onclick="setHours('cheap')">3 más baratas</button>
       </div>
+      <div class="legend">
+        <span><span class="leg-dot" style="background:var(--green);"></span>Hora activa</span>
+        <span><span class="leg-dot" style="border:1px solid var(--green);background:transparent;"></span>Más barata</span>
+        <span><span class="leg-dot" style="border:1px solid var(--red);background:transparent;"></span>Más cara</span>
+      </div>
+      <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
+      <div class="hour-grid" id="hg2"></div>
     </div>
-    <div class="legend">
-      <span><span class="leg-dot" style="background:var(--green);"></span>Hora activa</span>
-      <span><span class="leg-dot" style="border:1px solid var(--green); background:transparent;"></span>Más barata</span>
-      <span><span class="leg-dot" style="border:1px solid var(--red); background:transparent;"></span>Más cara</span>
+
+    <!-- Tab 2: franjas desde/hasta con fracciones -->
+    <div class="tab-panel" id="tab-franjas">
+      <div id="franjaList"></div>
+      <button class="ghost" style="margin-top:10px;" onclick="addFranja()">+ Añadir franja</button>
+      <div class="franja-resumen" id="franjaResumen"></div>
     </div>
-    <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
-    <div class="hour-grid" id="hg2"></div>
   </div>
 
   <div class="card" style="margin-bottom:1.25rem;">
@@ -156,22 +187,22 @@
     </p>
   </div>
 
-  <div class="metrics" id="metrics">
+  <div class="metrics">
     <div class="metric"><p class="metric-label">Coste bruto</p><p class="metric-value" id="mBruto">—</p><p class="metric-sub">sin descuento</p></div>
     <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" id="mAhorro" style="color:var(--green);">—</p><p class="metric-sub" id="mAhorroPct">—</p></div>
     <div class="metric highlight"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub">con bono aplicado</p></div>
     <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value" id="mKwh">—</p><p class="metric-sub" id="mInfo">—</p></div>
   </div>
 
-  <div class="card" id="desgloseCard" style="display:none; margin-bottom:1.25rem;">
-    <p class="card-title">Desglose hora a hora</p>
+  <div class="card" id="desgloseCard" style="display:none;margin-bottom:1.25rem;">
+    <p class="card-title">Desglose</p>
     <div class="desglose" id="desglose"></div>
   </div>
 
   <div class="card" style="margin-bottom:1.25rem;">
-    <p class="card-title">Curva PVPC del día <span id="chartDate" style="font-weight:400; text-transform:none; color:var(--muted);"></span></p>
-    <div style="position:relative; height:180px;">
-      <canvas id="chart" role="img" aria-label="Precios PVPC por hora del día seleccionado">Curva de precios PVPC horarios.</canvas>
+    <p class="card-title">Curva PVPC del día <span id="chartDate" style="font-weight:400;text-transform:none;color:var(--muted);"></span></p>
+    <div style="position:relative;height:180px;">
+      <canvas id="chart" role="img" aria-label="Precios PVPC por hora">Curva de precios PVPC horarios.</canvas>
     </div>
   </div>
 
@@ -183,49 +214,56 @@ const MACHINES = {{ machines | tojson }};
 const state = {};
 MACHINES.forEach(m => state[m.id] = { active: false, mode: 'frio' });
 
-/* ── Aparatos extra con slider ── */
 const EXTRAS = [
-  { id: 'horno',        label: 'Horno',                    min: 0.5,  max: 4.0,  step: 0.1,  def: 2.0  },
-  { id: 'lavadora',     label: 'Lavadora',                 min: 0.3,  max: 3.0,  step: 0.1,  def: 1.0  },
-  { id: 'secadora',     label: 'Secadora',                 min: 0.5,  max: 4.0,  step: 0.1,  def: 2.5  },
-  { id: 'lavavajillas', label: 'Lavavajillas',             min: 0.5,  max: 3.0,  step: 0.1,  def: 1.5  },
-  { id: 'tv',           label: 'TV / entretenimiento',     min: 0.05, max: 1.0,  step: 0.05, def: 0.1  },
-  { id: 'vent_pequeño', label: 'Ventilador techo pequeño', min: 0.01, max: 0.15, step: 0.01, def: 0.04 },
-  { id: 'vent_mediano', label: 'Ventilador techo mediano', min: 0.01, max: 0.15, step: 0.01, def: 0.06 },
-  { id: 'vent_grande',  label: 'Ventilador techo grande',  min: 0.01, max: 0.15, step: 0.01, def: 0.09 },
-  { id: 'personalizado', label: 'Aparato personalizado',   min: 0.1,  max: 10.0, step: 0.1,  def: 1.0  },
+  { id:'horno',        label:'Horno',                    min:0.5,  max:4.0,  step:0.1,  def:2.0  },
+  { id:'lavadora',     label:'Lavadora',                 min:0.3,  max:3.0,  step:0.1,  def:1.0  },
+  { id:'secadora',     label:'Secadora',                 min:0.5,  max:4.0,  step:0.1,  def:2.5  },
+  { id:'lavavajillas', label:'Lavavajillas',             min:0.5,  max:3.0,  step:0.1,  def:1.5  },
+  { id:'tv',           label:'TV / entretenimiento',     min:0.05, max:1.0,  step:0.05, def:0.1  },
+  { id:'vent_pequeño', label:'Ventilador techo pequeño', min:0.01, max:0.15, step:0.01, def:0.04 },
+  { id:'vent_mediano', label:'Ventilador techo mediano', min:0.01, max:0.15, step:0.01, def:0.06 },
+  { id:'vent_grande',  label:'Ventilador techo grande',  min:0.01, max:0.15, step:0.01, def:0.09 },
+  { id:'personalizado',label:'Aparato personalizado',    min:0.1,  max:10.0, step:0.1,  def:1.0  },
 ];
 const extraState = {};
 EXTRAS.forEach(e => extraState[e.id] = { active: false, kw: e.def });
 
-let prices  = {};
-let selHrs  = new Set();
+let prices   = {};
+let selHrs   = new Set();
+let franjas  = [];         // [{desde:'08:30', hasta:'13:45'}, ...]
+let activeTab = 'botones';
 let chartObj = null;
+let franjaId = 0;
 
-/* ── Formato español: punto → coma ── */
-function fmt(num, dec) {
-  return num.toFixed(dec).replace('.', ',');
+function fmt(num, dec) { return num.toFixed(dec).replace('.', ','); }
+
+document.getElementById('datePicker').value = new Date().toISOString().slice(0,10);
+
+/* ══ PESTAÑAS ══════════════════════════════════════════════════════════ */
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['botones','franjas'][i]===tab));
+  document.getElementById('tab-botones').classList.toggle('active', tab==='botones');
+  document.getElementById('tab-franjas').classList.toggle('active', tab==='franjas');
+  compute();
 }
 
-const today = new Date().toISOString().slice(0,10);
-document.getElementById('datePicker').value = today;
-
-/* ── Máquinas AC ── */
+/* ══ MÁQUINAS AC ═══════════════════════════════════════════════════════ */
 function buildMachines() {
   const el = document.getElementById('machineList');
   el.innerHTML = '';
   MACHINES.forEach(m => {
     const st = state[m.id];
-    const kw = st.mode === 'frio' ? m.kw_frio : m.kw_calor;
+    const kw = st.mode==='frio' ? m.kw_frio : m.kw_calor;
     const d  = document.createElement('div');
     d.className = 'machine-row';
     d.innerHTML = `
       <label class="toggle">
-        <input type="checkbox" ${st.active?'checked':''} onchange="toggle('${m.id}', this.checked)">
+        <input type="checkbox" ${st.active?'checked':''} onchange="toggle('${m.id}',this.checked)">
         <span class="slider"></span>
       </label>
       <span class="machine-name" style="opacity:${st.active?1:0.5}">${m.label}</span>
-      <select class="mode-sel" onchange="setMode('${m.id}', this.value)">
+      <select class="mode-sel" onchange="setMode('${m.id}',this.value)">
         <option value="frio"  ${st.mode==='frio' ?'selected':''}>Frío</option>
         <option value="calor" ${st.mode==='calor'?'selected':''}>Calor</option>
       </select>
@@ -233,111 +271,204 @@ function buildMachines() {
     el.appendChild(d);
   });
 }
+function toggle(id,val){ state[id].active=val; buildMachines(); compute(); }
+function setMode(id,v) { state[id].mode=v;    buildMachines(); compute(); }
 
-function toggle(id, val) { state[id].active = val; buildMachines(); compute(); }
-function setMode(id, v)  { state[id].mode = v;    buildMachines(); compute(); }
-
-/* ── Aparatos extra ── */
+/* ══ APARATOS EXTRA ═════════════════════════════════════════════════════ */
 function buildExtras() {
   const el = document.getElementById('extraList');
   el.innerHTML = '';
   EXTRAS.forEach(e => {
-    const st = extraState[e.id];
+    const st  = extraState[e.id];
     const row = document.createElement('div');
     row.className = 'extra-row';
     row.innerHTML = `
       <label class="toggle extra-toggle">
-        <input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}', this.checked)">
+        <input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)">
         <span class="slider"></span>
       </label>
       <span class="extra-label" style="opacity:${st.active?1:0.5}">${e.label}</span>
       <input type="range" class="extra-slider" id="sl_${e.id}"
         min="${e.min}" max="${e.max}" step="${e.step}" value="${st.kw}"
         ${st.active?'':'disabled'}
-        oninput="updateExtra('${e.id}', this.value)">
+        oninput="updateExtra('${e.id}',this.value)">
       <span class="extra-val" id="val_${e.id}" style="opacity:${st.active?1:0.4}">${fmt(st.kw,2)} kW</span>`;
     el.appendChild(row);
   });
 }
+function toggleExtra(id,val){ extraState[id].active=val; buildExtras(); compute(); }
+function updateExtra(id,val){ extraState[id].kw=parseFloat(val); document.getElementById('val_'+id).textContent=fmt(parseFloat(val),2)+' kW'; compute(); }
 
-function toggleExtra(id, val) {
-  extraState[id].active = val;
-  buildExtras(); compute();
-}
-function updateExtra(id, val) {
-  extraState[id].kw = parseFloat(val);
-  document.getElementById('val_'+id).textContent = fmt(parseFloat(val), 2) + ' kW';
-  compute();
-}
-
-/* ── Horas ── */
+/* ══ HORAS (BOTONES) ════════════════════════════════════════════════════ */
 function buildHours() {
-  const pl    = Object.entries(prices).map(([h,p])=>({h:+h,p})).sort((a,b)=>a.p-b.p);
+  const pl     = Object.entries(prices).map(([h,p])=>({h:+h,p})).sort((a,b)=>a.p-b.p);
   const cheapH = pl.length ? pl[0].h : -1;
   const priH   = pl.length ? pl[pl.length-1].h : -1;
-  ['hg1','hg2'].forEach((gid, gi) => {
+  ['hg1','hg2'].forEach((gid,gi) => {
     const el = document.getElementById(gid);
     el.innerHTML = '';
-    for(let h=gi*12; h<gi*12+12; h++) {
+    for(let h=gi*12; h<gi*12+12; h++){
       const b = document.createElement('button');
       b.className = 'hour-btn' +
-        (selHrs.has(h) ? ' active' : '') +
-        (h===cheapH && !selHrs.has(h) ? ' cheapest' : '') +
-        (h===priH   && !selHrs.has(h) ? ' priciest'  : '');
+        (selHrs.has(h)?' active':'') +
+        (h===cheapH&&!selHrs.has(h)?' cheapest':'') +
+        (h===priH  &&!selHrs.has(h)?' priciest':'');
       b.textContent = String(h).padStart(2,'0')+'h';
-      if(prices[h]) b.title = fmt(prices[h]*1000, 2)+' €/MWh';
+      if(prices[h]) b.title = fmt(prices[h]*1000,2)+' €/MWh';
       b.onclick = () => { selHrs.has(h)?selHrs.delete(h):selHrs.add(h); buildHours(); compute(); };
       el.appendChild(b);
     }
   });
 }
-
-function setHours(mode) {
+function setHours(mode){
   selHrs.clear();
-  if(mode==='all') { for(let h=0;h<24;h++) selHrs.add(h); }
-  else if(mode==='cheap' && Object.keys(prices).length) {
+  if(mode==='all') for(let h=0;h<24;h++) selHrs.add(h);
+  else if(mode==='cheap'&&Object.keys(prices).length)
     Object.entries(prices).sort((a,b)=>a[1]-b[1]).slice(0,3).forEach(([h])=>selHrs.add(+h));
-  }
   buildHours(); compute();
 }
 
-/* ── Cálculo ── */
-function compute() {
-  const bono   = parseFloat(document.getElementById('bonoSel').value) || 0;
-  const acAct  = MACHINES.filter(m => state[m.id].active);
-  const exAct  = EXTRAS.filter(e => extraState[e.id].active);
-  const hrs    = [...selHrs].sort((a,b)=>a-b);
-  const avg    = Object.keys(prices).length ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
+/* ══ FRANJAS HORARIAS ══════════════════════════════════════════════════ */
+function addFranja(desde='08:00', hasta='14:00'){
+  franjas.push({ id: franjaId++, desde, hasta });
+  buildFranjas(); compute();
+}
 
-  let bruto=0, kwh=0;
-  hrs.forEach(h => {
-    const p = prices[h] ?? avg;
-    acAct.forEach(m => { const kw=state[m.id].mode==='frio'?m.kw_frio:m.kw_calor; bruto+=kw*p; kwh+=kw; });
-    exAct.forEach(e => { bruto+=extraState[e.id].kw*p; kwh+=extraState[e.id].kw; });
+function removeFranja(id){
+  franjas = franjas.filter(f=>f.id!==id);
+  buildFranjas(); compute();
+}
+
+function buildFranjas(){
+  const el = document.getElementById('franjaList');
+  el.innerHTML = '';
+  if(!franjas.length){
+    el.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0;">Pulsa "+ Añadir franja" para definir un periodo de uso.</p>';
+    document.getElementById('franjaResumen').innerHTML = '';
+    return;
+  }
+  franjas.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'franja-row';
+    row.innerHTML = `
+      <div>
+        <p class="franja-label">Desde</p>
+        <input type="time" class="franja-time" value="${f.desde}" step="900"
+          onchange="updateFranja(${f.id},'desde',this.value)">
+      </div>
+      <div>
+        <p class="franja-label">Hasta</p>
+        <input type="time" class="franja-time" value="${f.hasta}" step="900"
+          onchange="updateFranja(${f.id},'hasta',this.value)">
+      </div>
+      <button class="btn-remove" onclick="removeFranja(${f.id})" title="Eliminar franja">×</button>`;
+    el.appendChild(row);
   });
+  updateFranjaResumen();
+}
+
+function updateFranja(id, field, val){
+  const f = franjas.find(f=>f.id===id);
+  if(f){ f[field]=val; updateFranjaResumen(); compute(); }
+}
+
+/* Convierte "HH:MM" a horas decimales (ej: "14:30" → 14.5) */
+function timeToH(t){ const [h,m]=t.split(':').map(Number); return h + m/60; }
+
+/* Resumen textual de las franjas */
+function updateFranjaResumen(){
+  const res = document.getElementById('franjaResumen');
+  if(!franjas.length){ res.innerHTML=''; return; }
+  let totalH = 0;
+  const lines = franjas.map(f => {
+    const d=timeToH(f.desde), h=timeToH(f.hasta);
+    const dur = h>d ? h-d : 0;
+    totalH += dur;
+    return `${f.desde}–${f.hasta} = <span>${fmt(dur,2)} h</span>`;
+  });
+  res.innerHTML = lines.join(' &nbsp;·&nbsp; ') + ` &nbsp;·&nbsp; Total: <span>${fmt(totalH,2)} h</span>`;
+}
+
+/* ══ CÁLCULO PRINCIPAL ══════════════════════════════════════════════════ */
+
+/* Calcula kWh·precio para un segmento [desdeH, hastaH) con precios horarios */
+function costSegmento(desdeH, hastaH, kwTotal){
+  if(hastaH <= desdeH || kwTotal === 0) return { coste:0, kwh:0, tramos:[] };
+  const avg = Object.keys(prices).length
+    ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
+  let coste=0, kwh=0, tramos=[];
+  for(let h=Math.floor(desdeH); h<Math.ceil(hastaH); h++){
+    const ini  = Math.max(desdeH, h);
+    const fin  = Math.min(hastaH, h+1);
+    const frac = fin - ini;          // fracción de hora dentro de este tramo
+    const p    = prices[h] ?? avg;
+    coste += kwTotal * p * frac;
+    kwh   += kwTotal * frac;
+    tramos.push({ h, frac, p, coste: kwTotal*p*frac });
+  }
+  return { coste, kwh, tramos };
+}
+
+function compute(){
+  const bono  = parseFloat(document.getElementById('bonoSel').value) || 0;
+  const acAct = MACHINES.filter(m => state[m.id].active);
+  const exAct = EXTRAS.filter(e => extraState[e.id].active);
+  const kwTotal = acAct.reduce((s,m)=>s+(state[m.id].mode==='frio'?m.kw_frio:m.kw_calor),0)
+                + exAct.reduce((s,e)=>s+extraState[e.id].kw, 0);
+
+  let bruto=0, kwh=0, desgloseParts=[];
+
+  if(activeTab==='botones'){
+    /* ── Modo botones: horas completas ── */
+    const hrs = [...selHrs].sort((a,b)=>a-b);
+    const avg = Object.keys(prices).length ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
+    hrs.forEach(h => {
+      const p = prices[h] ?? avg;
+      bruto += kwTotal * p;
+      kwh   += kwTotal;
+      desgloseParts.push({ label: String(h).padStart(2,'0')+':00', coste: kwTotal*p, precio: p });
+    });
+    document.getElementById('mInfo').textContent = `${hrs.length}h completas · ${acAct.length+exAct.length} aparatos`;
+  } else {
+    /* ── Modo franjas: fracciones de hora ── */
+    const vistosH = new Set();
+    franjas.forEach(f => {
+      const d = timeToH(f.desde), h = timeToH(f.hasta);
+      if(h <= d) return;
+      const seg = costSegmento(d, h, kwTotal);
+      bruto += seg.coste;
+      kwh   += seg.kwh;
+      seg.tramos.forEach(t => {
+        const key = t.h;
+        if(!vistosH.has(key)){
+          vistosH.add(key);
+          desgloseParts.push({ label: String(t.h).padStart(2,'0')+':00', coste: t.coste, precio: t.p, frac: t.frac });
+        } else {
+          const ex = desgloseParts.find(x=>x.label===String(t.h).padStart(2,'0')+':00');
+          if(ex) ex.coste += t.coste;
+        }
+      });
+    });
+    const totalH = franjas.reduce((s,f)=>{ const d=timeToH(f.desde),h=timeToH(f.hasta); return s+(h>d?h-d:0); },0);
+    document.getElementById('mInfo').textContent = `${fmt(totalH,2)}h · ${acAct.length+exAct.length} aparatos`;
+  }
 
   const ahorro = bruto*(bono/100);
   const final  = bruto-ahorro;
-  const nAp    = acAct.length + exAct.length;
 
-  document.getElementById('mBruto').textContent   = bruto>0  ? fmt(bruto,3)+' €' : '—';
-  document.getElementById('mAhorro').textContent  = ahorro>0 ? '-'+fmt(ahorro,3)+' €' : '—';
-  document.getElementById('mAhorroPct').textContent = bono>0 ? bono+'% bono social' : 'sin descuento';
-  document.getElementById('mFinal').textContent   = bruto>0  ? fmt(final,3)+' €' : '—';
-  document.getElementById('mKwh').textContent     = kwh>0    ? fmt(kwh,2)+' kWh' : '—';
-  document.getElementById('mInfo').textContent    = `${hrs.length}h · ${nAp} aparato${nAp!==1?'s':''}`;
+  document.getElementById('mBruto').textContent    = bruto>0 ? fmt(bruto,3)+' €' : '—';
+  document.getElementById('mAhorro').textContent   = ahorro>0 ? '-'+fmt(ahorro,3)+' €' : '—';
+  document.getElementById('mAhorroPct').textContent= bono>0 ? bono+'% bono social' : 'sin descuento';
+  document.getElementById('mFinal').textContent    = bruto>0 ? fmt(final,3)+' €' : '—';
+  document.getElementById('mKwh').textContent      = kwh>0  ? fmt(kwh,2)+' kWh' : '—';
 
-  const dc = document.getElementById('desgloseCard');
-  const de = document.getElementById('desglose');
-  if(hrs.length && Object.keys(prices).length) {
+  /* Desglose */
+  const dc=document.getElementById('desgloseCard'), de=document.getElementById('desglose');
+  if(desgloseParts.length && Object.keys(prices).length){
     dc.style.display='block'; de.innerHTML='';
-    hrs.forEach(h => {
-      const p = prices[h] ?? avg;
-      let ch=0;
-      acAct.forEach(m => { ch+=(state[m.id].mode==='frio'?m.kw_frio:m.kw_calor)*p; });
-      exAct.forEach(e => { ch+=extraState[e.id].kw*p; });
+    desgloseParts.sort((a,b)=>a.label.localeCompare(b.label)).forEach(p=>{
       const div=document.createElement('div'); div.className='desglose-item';
-      div.innerHTML=`<div class="desglose-h">${String(h).padStart(2,'0')}:00</div><div class="desglose-p">${fmt(ch,3)} €</div><div class="desglose-c">${fmt(p*1000,2)} €/MWh</div>`;
+      div.innerHTML=`<div class="desglose-h">${p.label}</div><div class="desglose-p">${fmt(p.coste,3)} €</div><div class="desglose-c">${fmt(p.precio*1000,2)} €/MWh</div>`;
       de.appendChild(div);
     });
   } else { dc.style.display='none'; }
@@ -345,18 +476,22 @@ function compute() {
   updateChart();
 }
 
-/* ── Gráfica ── */
-function updateChart() {
+/* ══ GRÁFICA ════════════════════════════════════════════════════════════ */
+function updateChart(){
   const labels = Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
-  const data   = labels.map((_,i)=>prices[i]!==undefined ? +(prices[i]*1000).toFixed(2) : null);
-  const colors = labels.map((_,i)=>selHrs.has(i)?'#1D9E75':'#378ADD');
+  const data   = labels.map((_,i)=>prices[i]!==undefined?+(prices[i]*1000).toFixed(2):null);
+
+  /* Color: verde si la hora está activa en cualquiera de los dos modos */
+  const activaEnFranjas = (h) => franjas.some(f=>{ const d=timeToH(f.desde),u=timeToH(f.hasta); return u>d && h<u && h+1>d; });
+  const colors = labels.map((_,i)=> activeTab==='botones' ? (selHrs.has(i)?'#1D9E75':'#378ADD') : (activaEnFranjas(i)?'#1D9E75':'#378ADD'));
+
   if(chartObj) chartObj.destroy();
-  chartObj = new Chart(document.getElementById('chart'), {
+  chartObj = new Chart(document.getElementById('chart'),{
     type:'bar',
     data:{ labels, datasets:[{ label:'€/MWh', data, backgroundColor:colors, borderRadius:3, borderSkipped:false }] },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`${fmt(c.parsed.y,2)} €/MWh${selHrs.has(c.dataIndex)?' · activa':''}` } } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`${fmt(c.parsed.y,2)} €/MWh` } } },
       scales:{
         x:{ ticks:{ color:'#8b92a5', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:12 }, grid:{color:'rgba(255,255,255,0.04)'} },
         y:{ ticks:{ color:'#8b92a5', font:{size:10}, callback:v=>fmt(v,2)+'€' }, grid:{color:'rgba(255,255,255,0.04)'} }
@@ -365,17 +500,16 @@ function updateChart() {
   });
 }
 
-/* ── Carga ESIOS ── */
-async function loadPrices() {
+/* ══ CARGA ESIOS ════════════════════════════════════════════════════════ */
+async function loadPrices(){
   const date=document.getElementById('datePicker').value;
-  const btn=document.getElementById('loadBtn');
-  const txt=document.getElementById('loadBtnText');
+  const btn=document.getElementById('loadBtn'), txt=document.getElementById('loadBtnText');
   btn.disabled=true; txt.innerHTML='<span class="spinner"></span> Cargando...';
   setStatus('warn','Consultando ESIOS...');
-  try {
+  try{
     const r=await fetch(`/api/prices?date=${date}`);
     const d=await r.json();
-    if(!r.ok){ setStatus('err', d.error||'Error desconocido'); return; }
+    if(!r.ok){ setStatus('err',d.error||'Error desconocido'); return; }
     prices={};
     Object.entries(d.hours).forEach(([h,p])=>prices[+h]=p);
     const mn=fmt(d.min*1000,2), mx=fmt(d.max*1000,2), av=fmt(d.avg*1000,2);
@@ -383,7 +517,7 @@ async function loadPrices() {
     document.getElementById('chartDate').textContent=date;
     buildHours(); compute();
   } catch(e){ setStatus('err','Error de red: '+e.message); }
-  finally { btn.disabled=false; txt.textContent='Cargar precios'; }
+  finally{ btn.disabled=false; txt.textContent='Cargar precios'; }
 }
 
 function setStatus(type,msg){
@@ -393,7 +527,7 @@ function setStatus(type,msg){
 
 document.getElementById('datePicker').addEventListener('change', loadPrices);
 
-buildMachines(); buildExtras(); buildHours(); updateChart();
+buildMachines(); buildExtras(); buildHours(); buildFranjas(); updateChart();
 loadPrices();
 </script>
 </body>
