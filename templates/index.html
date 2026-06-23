@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Calculadora Aire Acondicionado</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #22263a;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8eaf0;
+    --muted: #8b92a5;
+    --green: #1D9E75;
+    --green-dim: rgba(29,158,117,0.15);
+    --amber: #EF9F27;
+    --red: #E24B4A;
+    --blue: #378ADD;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--green-dim); color: var(--green); font-weight: 500; }
+
+  .status-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--bg2); border: 1px solid var(--border); margin-bottom: 1.25rem; font-size: 13px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s; }
+  .dot-ok   { background: var(--green); }
+  .dot-warn { background: var(--amber); }
+  .dot-err  { background: var(--red);   }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  @media(max-width:600px) { .row2,.row3 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.875rem; }
+
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+  input[type=date], select {
+    width: 100%; padding: 8px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-size: 14px; outline: none;
+  }
+  input[type=date]:focus, select:focus { border-color: var(--green); }
+
+  button.primary {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 20px; border-radius: var(--radius-sm);
+    background: var(--green); color: white; border: none;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+  }
+  button.primary:hover { opacity: 0.85; }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.ghost {
+    padding: 5px 12px; border-radius: var(--radius-sm);
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  button.ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .machine-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .machine-row:last-child { border-bottom: none; }
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
+  .slider::before { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); top: 2px; left: 2px; transition: all 0.2s; }
+  .toggle input:checked + .slider { background: var(--green); border-color: var(--green); }
+  .toggle input:checked + .slider::before { left: 18px; background: white; }
+  .machine-name { flex: 1; font-size: 13px; }
+  .machine-kw { font-size: 12px; color: var(--muted); min-width: 56px; text-align: right; }
+  .mode-sel { width: auto; padding: 4px 8px; font-size: 12px; }
+
+  .hour-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+  .hour-btn {
+    height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg3); color: var(--muted); font-size: 11px;
+    cursor: pointer; transition: all 0.12s; font-family: inherit;
+  }
+  .hour-btn:hover:not(.active) { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .hour-btn.active { background: var(--green); border-color: var(--green); color: white; font-weight: 500; }
+  .hour-btn.cheapest:not(.active) { border-color: var(--green); color: var(--green); }
+  .hour-btn.priciest:not(.active) { border-color: var(--red); color: var(--red); }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  @media(max-width:600px) { .metrics { grid-template-columns: 1fr 1fr; } }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.875rem 1rem; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .metric.highlight { border-color: var(--green); }
+  .metric.highlight .metric-value { color: var(--green); }
+
+  .desglose { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 0.75rem; }
+  @media(max-width:600px) { .desglose { grid-template-columns: repeat(4, 1fr); } }
+  .desglose-item { background: var(--bg3); border: 1px solid var(--green-dim); border-radius: var(--radius-sm); padding: 6px 4px; text-align: center; }
+  .desglose-h { font-size: 11px; color: var(--muted); }
+  .desglose-p { font-size: 12px; font-weight: 600; color: var(--text); margin: 2px 0; }
+  .desglose-c { font-size: 10px; color: var(--muted); }
+
+  .legend { display: flex; gap: 16px; font-size: 11px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  .bono-info { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+  .bono-info strong { color: var(--amber); }
+
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <span style="font-size:22px;">⚡</span>
+    <h1>Calculadora Aire Acondicionado</h1>
+    <span class="pill">PVPC · ESIOS</span>
+  </header>
+
+  <div class="status-bar">
+    <span class="dot dot-warn" id="statusDot"></span>
+    <span id="statusText">Selecciona una fecha y carga los precios</span>
+  </div>
+
+  <div class="row2" style="margin-bottom:1.25rem;">
+    <div>
+      <label>Fecha</label>
+      <input type="date" id="datePicker">
+    </div>
+    <div style="display:flex; align-items:flex-end; gap:8px;">
+      <button class="primary" id="loadBtn" onclick="loadPrices()">
+        <span id="loadBtnText">Cargar precios</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;">
+    <p class="card-title">Máquinas</p>
+    <div id="machineList"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem;">
+      <p class="card-title" style="margin:0;">Horas de uso</p>
+      <div style="display:flex; gap:6px;">
+        <button class="ghost" onclick="setHours('all')">Todas</button>
+        <button class="ghost" onclick="setHours('none')">Ninguna</button>
+        <button class="ghost" onclick="setHours('cheap')">3 más baratas</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="leg-dot" style="background:var(--green);"></span>Hora activa</span>
+      <span><span class="leg-dot" style="border:1px solid var(--green); background:transparent;"></span>Hora más barata</span>
+      <span><span class="leg-dot" style="border:1px solid var(--red); background:transparent;"></span>Hora más cara</span>
+    </div>
+    <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
+    <div class="hour-grid" id="hg2"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;">
+    <p class="card-title">Bono social</p>
+    <select id="bonoSel" onchange="compute()">
+      <option value="0">Sin bono social</option>
+      <option value="42.5" selected>42,5% — Vulnerable (2026, prorrogado)</option>
+      <option value="57.5">57,5% — Vulnerable severo (2026)</option>
+      <option value="35">35% — Vulnerable (2027 estimado)</option>
+      <option value="50">50% — Vulnerable severo (2027 estimado)</option>
+      <option value="100">100% — Riesgo exclusión social</option>
+    </select>
+    <p class="bono-info">
+      El descuento se aplica sobre el término de energía del PVPC, no sobre peajes ni impuestos.<br>
+      <strong>2026:</strong> 42,5% prorrogado por RDL 16/2025 · <strong>2027:</strong> 35% base salvo nueva prórroga.
+    </p>
+  </div>
+
+  <div class="metrics" id="metrics">
+    <div class="metric"><p class="metric-label">Coste bruto</p><p class="metric-value" id="mBruto">—</p><p class="metric-sub">sin descuento</p></div>
+    <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" id="mAhorro" style="color:var(--green);">—</p><p class="metric-sub" id="mAhorroPct">—</p></div>
+    <div class="metric highlight"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub">con bono aplicado</p></div>
+    <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value" id="mKwh">—</p><p class="metric-sub" id="mInfo">—</p></div>
+  </div>
+
+  <div class="card" id="desgloseCard" style="display:none; margin-bottom:1.25rem;">
+    <p class="card-title">Desglose hora a hora</p>
+    <div class="desglose" id="desglose"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;">
+    <p class="card-title">Curva PVPC del día <span id="chartDate" style="font-weight:400; text-transform:none; color:var(--muted);"></span></p>
+    <div style="position:relative; height:180px;">
+      <canvas id="chart" role="img" aria-label="Precios PVPC por hora del día seleccionado">Curva de precios PVPC horarios.</canvas>
+    </div>
+  </div>
+
+  <footer>Precios obtenidos de ESIOS · REE · Gabba82/ac-cost-web</footer>
+</div>
+
+<script>
+const MACHINES = {{ machines | tojson }};
+const state = {};
+MACHINES.forEach(m => state[m.id] = { active: false, mode: 'frio' });
+
+let prices  = {};
+let selHrs  = new Set();
+let chartObj = null;
+
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('datePicker').value = today;
+
+function buildMachines() {
+  const el = document.getElementById('machineList');
+  el.innerHTML = '';
+  MACHINES.forEach(m => {
+    const st = state[m.id];
+    const kw = st.mode === 'frio' ? m.kw_frio : m.kw_calor;
+    const d  = document.createElement('div');
+    d.className = 'machine-row';
+    d.innerHTML = `
+      <label class="toggle">
+        <input type="checkbox" ${st.active ? 'checked' : ''} onchange="toggle('${m.id}', this.checked)">
+        <span class="slider"></span>
+      </label>
+      <span class="machine-name" style="opacity:${st.active?1:0.5}">${m.label}</span>
+      <select class="mode-sel" onchange="setMode('${m.id}', this.value)">
+        <option value="frio" ${st.mode==='frio'?'selected':''}>Frío</option>
+        <option value="calor" ${st.mode==='calor'?'selected':''}>Calor</option>
+      </select>
+      <span class="machine-kw">${kw.toFixed(2)} kW</span>`;
+    el.appendChild(d);
+  });
+}
+
+function toggle(id, val) { state[id].active = val; buildMachines(); compute(); }
+function setMode(id, v)  { state[id].mode = v;    buildMachines(); compute(); }
+
+function buildHours() {
+  const priceList = Object.entries(prices).map(([h,p]) => ({h:+h,p})).sort((a,b)=>a.p-b.p);
+  const cheapH = priceList.length ? priceList[0].h  : -1;
+  const priH   = priceList.length ? priceList[priceList.length-1].h : -1;
+
+  ['hg1','hg2'].forEach((gid, gi) => {
+    const el = document.getElementById(gid);
+    el.innerHTML = '';
+    for(let h = gi*12; h < gi*12+12; h++) {
+      const b = document.createElement('button');
+      b.className = 'hour-btn' +
+        (selHrs.has(h) ? ' active' : '') +
+        (h===cheapH && !selHrs.has(h) ? ' cheapest' : '') +
+        (h===priH   && !selHrs.has(h) ? ' priciest'  : '');
+      b.textContent = String(h).padStart(2,'0')+'h';
+      if(prices[h]) b.title = (prices[h]*1000).toFixed(1)+' €/MWh';
+      b.onclick = () => { selHrs.has(h) ? selHrs.delete(h) : selHrs.add(h); buildHours(); compute(); };
+      el.appendChild(b);
+    }
+  });
+}
+
+function setHours(mode) {
+  selHrs.clear();
+  if(mode === 'all') { for(let h=0;h<24;h++) selHrs.add(h); }
+  else if(mode === 'cheap' && Object.keys(prices).length) {
+    Object.entries(prices).sort((a,b)=>a[1]-b[1]).slice(0,3).forEach(([h]) => selHrs.add(+h));
+  }
+  buildHours(); compute();
+}
+
+function compute() {
+  const bono  = parseFloat(document.getElementById('bonoSel').value) || 0;
+  const active = MACHINES.filter(m => state[m.id].active);
+  const hrs    = [...selHrs].sort((a,b)=>a-b);
+  const avg    = Object.keys(prices).length ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length : 0;
+
+  let bruto=0, kwh=0;
+  hrs.forEach(h => {
+    const p = prices[h] ?? avg;
+    active.forEach(m => {
+      const kw = state[m.id].mode==='frio' ? m.kw_frio : m.kw_calor;
+      bruto += kw * p; kwh += kw;
+    });
+  });
+
+  const ahorro = bruto * (bono/100);
+  const final  = bruto - ahorro;
+
+  document.getElementById('mBruto').textContent  = bruto>0 ? bruto.toFixed(3)+' €' : '—';
+  document.getElementById('mAhorro').textContent = ahorro>0 ? '-'+ahorro.toFixed(3)+' €' : '—';
+  document.getElementById('mAhorroPct').textContent = bono>0 ? bono+'% bono social' : 'sin descuento';
+  document.getElementById('mFinal').textContent  = bruto>0 ? final.toFixed(3)+' €' : '—';
+  document.getElementById('mKwh').textContent    = kwh>0 ? kwh.toFixed(2)+' kWh' : '—';
+  document.getElementById('mInfo').textContent   = `${hrs.length}h · ${active.length} máquina${active.length!==1?'s':''}`;
+
+  const dc = document.getElementById('desgloseCard');
+  const de = document.getElementById('desglose');
+  if(hrs.length && Object.keys(prices).length) {
+    dc.style.display = 'block'; de.innerHTML = '';
+    hrs.forEach(h => {
+      const p = prices[h] ?? avg;
+      let ch=0; active.forEach(m => { const kw=state[m.id].mode==='frio'?m.kw_frio:m.kw_calor; ch+=kw*p; });
+      const div=document.createElement('div'); div.className='desglose-item';
+      div.innerHTML=`<div class="desglose-h">${String(h).padStart(2,'0')}:00</div><div class="desglose-p">${ch.toFixed(3)}€</div><div class="desglose-c">${(p*1000).toFixed(1)} €/MWh</div>`;
+      de.appendChild(div);
+    });
+  } else { dc.style.display='none'; }
+
+  updateChart();
+}
+
+function updateChart() {
+  const labels = Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
+  const data   = labels.map((_,i) => prices[i]!==undefined ? +(prices[i]*1000).toFixed(2) : null);
+  const colors = labels.map((_,i) => selHrs.has(i) ? '#1D9E75' : '#378ADD');
+
+  if(chartObj) chartObj.destroy();
+  chartObj = new Chart(document.getElementById('chart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'€/MWh', data, backgroundColor:colors, borderRadius:3, borderSkipped:false }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`${c.parsed.y.toFixed(2)} €/MWh${selHrs.has(c.dataIndex)?' · activa':''}` } } },
+      scales:{
+        x:{ ticks:{ color:'#8b92a5', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:12 }, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:{ ticks:{ color:'#8b92a5', font:{size:10}, callback:v=>v+'€' }, grid:{color:'rgba(255,255,255,0.04)'} }
+      }
+    }
+  });
+}
+
+async function loadPrices() {
+  const date = document.getElementById('datePicker').value;
+  const btn  = document.getElementById('loadBtn');
+  const txt  = document.getElementById('loadBtnText');
+
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span> Cargando...';
+  setStatus('warn', 'Consultando ESIOS...');
+
+  try {
+    const r = await fetch(`/api/prices?date=${date}`);
+    const d = await r.json();
+
+    if(!r.ok) { setStatus('err', d.error || 'Error desconocido'); return; }
+
+    prices = {};
+    Object.entries(d.hours).forEach(([h,p]) => prices[+h]=p);
+
+    const min=(d.min*1000).toFixed(1), max=(d.max*1000).toFixed(1), avg=(d.avg*1000).toFixed(1);
+    setStatus('ok', `${Object.keys(prices).length} horas · media ${avg} · mín ${min} (${String(d.min_h).padStart(2,'0')}h) · máx ${max} (${String(d.max_h).padStart(2,'0')}h) €/MWh`);
+    document.getElementById('chartDate').textContent = date;
+    buildHours(); compute();
+  } catch(e) {
+    setStatus('err', 'Error de red: '+e.message);
+  } finally {
+    btn.disabled=false; txt.textContent='Cargar precios';
+  }
+}
+
+function setStatus(type, msg) {
+  document.getElementById('statusDot').className = 'dot dot-'+type;
+  document.getElementById('statusText').textContent = msg;
+}
+
+buildMachines(); buildHours(); updateChart();
+</script>
+</body>
+</html>
