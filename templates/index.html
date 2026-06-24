@@ -193,6 +193,25 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 
   <div class="card">
+    <p class="card-title">Tarifa</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="tarifa" value="pvpc" checked onchange="compute()" style="accent-color:var(--green);"> PVPC (precio horario de mercado)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="tarifa" value="2otd" onchange="compute()" style="accent-color:var(--amber);"> PVPC 2.0TD con impuestos (tu contrato)
+      </label>
+    </div>
+    <div id="tarifa2otd-info" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--amber);">Tu tarifa: PVPC 2.0TD · Energía XXI</strong><br>
+      Potencia contratada: 5,75 kW P1 · 5,75 kW P2<br>
+      Término potencia: 2,375388 €/kW·mes (P1) + 0,080738 €/kW·mes (P2) = <strong style="color:var(--amber);" id="termPotencia">—</strong> €/mes<br>
+      Periodos: <span style="color:var(--red);">Punta 10-14h y 18-22h</span> · <span style="color:var(--amber);">Llano resto</span> · <span style="color:var(--green);">Valle 00-08h</span><br>
+      Impuesto eléctrico: 5,11269632% · IVA: 21%
+    </div>
+  </div>
+
+  <div class="card">
     <p class="card-title">Bono social</p>
     <select id="bonoSel" onchange="compute()">
       <option value="0">Sin bono social</option>
@@ -206,10 +225,17 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 
   <div class="metrics">
-    <div class="metric"><p class="metric-label">Coste bruto</p><p class="metric-value" id="mBruto">—</p><p class="metric-sub">sin descuento</p></div>
+    <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value" id="mBruto">—</p><p class="metric-sub">término energía</p></div>
     <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" id="mAhorro" style="color:var(--green);">—</p><p class="metric-sub" id="mAhorroPct">—</p></div>
-    <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub">con bono</p></div>
+    <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value" id="mFinal">—</p><p class="metric-sub" id="mFinalSub">con bono</p></div>
     <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value" id="mKwh">—</p><p class="metric-sub" id="mInfo">—</p></div>
+  </div>
+
+  <div id="metrics2otd" style="display:none;" class="metrics" style="margin-top:-0.5rem;">
+    <div class="metric"><p class="metric-label">Imp. eléctrico (5,11%)</p><p class="metric-value" id="mImpElec">—</p><p class="metric-sub">sobre energía</p></div>
+    <div class="metric"><p class="metric-label">IVA (21%)</p><p class="metric-value" id="mIva">—</p><p class="metric-sub">sobre subtotal</p></div>
+    <div class="metric hl-amber"><p class="metric-label">Total con impuestos</p><p class="metric-value" id="mTotalImp">—</p><p class="metric-sub">sin término potencia</p></div>
+    <div class="metric"><p class="metric-label">Término potencia</p><p class="metric-value" id="mTermPot">14,12 €</p><p class="metric-sub">fijo/mes (prorrateado)</p></div>
   </div>
 
   <div class="card" id="desgloseCard" style="display:none;">
@@ -428,6 +454,7 @@ const bonoSel=document.getElementById('bonoSel');
 bonoSel.value=String(settings.bono_social_pct||42.5);
 
 buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
+document.querySelectorAll('input[name="tarifa"]').forEach(r=>r.addEventListener('change',compute));
 loadPrices();
 
 /* ── PESTAÑAS ── */
@@ -566,12 +593,44 @@ function compute(){
     document.getElementById('mInfo').textContent=`${fmt(tot,2)}h · ${acAct.length+exAct.length} aparatos`;
   }
 
-  const ahorro=bruto*(bono/100),final=bruto-ahorro;
+  const ahorro=bruto*(bono/100);
+  const brutoConBono=bruto-ahorro;
+  const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
+
+  // Impuestos 2.0TD
+  const IMP_ELEC=0.0511269632;
+  const IVA=0.21;
+  // Término de potencia: 5.75kW * (2.375388 + 0.080738) = 5.75 * 2.456126 = 14.123 €/mes
+  const TERM_POT_MES=5.75*(2.375388+0.080738); // 14,123 €/mes fijo
+  const impElec=brutoConBono*IMP_ELEC;
+  const subtotal=brutoConBono+impElec;
+  const iva=subtotal*IVA;
+  const totalImp=subtotal+iva;
+
+  // Término de potencia prorrateado a las horas calculadas
+  const totalHrs=activeTab==='botones'?selHrs.size:franjas.reduce((s,f)=>{const d=timeToH(f.desde),h=timeToH(f.hasta);return s+(h>d?h-d:0);},0);
+  const termPotProrrateado=TERM_POT_MES*(totalHrs/720); // 720h = mes promedio
+
+  const final=is2otd?totalImp:brutoConBono;
+
   document.getElementById('mBruto').textContent=bruto>0?fmt(bruto,3)+' €':'—';
   document.getElementById('mAhorro').textContent=ahorro>0?'-'+fmt(ahorro,3)+' €':'—';
   document.getElementById('mAhorroPct').textContent=bono>0?bono+'% bono':'sin descuento';
   document.getElementById('mFinal').textContent=bruto>0?fmt(final,3)+' €':'—';
+  document.getElementById('mFinalSub').textContent=is2otd?'con imp. incluidos':'con bono';
   document.getElementById('mKwh').textContent=kwh>0?fmt(kwh,2)+' kWh':'—';
+
+  // Panel 2.0TD
+  document.getElementById('tarifa2otd-info').style.display=is2otd?'block':'none';
+  document.getElementById('metrics2otd').style.display=is2otd?'grid':'none';
+  if(is2otd){
+    document.getElementById('mImpElec').textContent=bruto>0?fmt(impElec,3)+' €':'—';
+    document.getElementById('mIva').textContent=bruto>0?fmt(iva,3)+' €':'—';
+    document.getElementById('mTotalImp').textContent=bruto>0?fmt(totalImp,3)+' €':'—';
+    document.getElementById('mTermPot').textContent=fmt(TERM_POT_MES,3)+' €';
+    document.getElementById('termPotencia').textContent=fmt(TERM_POT_MES,3);
+  }
 
   const dc=document.getElementById('desgloseCard'),de=document.getElementById('desglose');
   if(parts.length&&Object.keys(prices).length){
