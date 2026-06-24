@@ -46,6 +46,9 @@ button.danger:hover{background:var(--red);color:white;}
 .hbtn.active{background:var(--green);border-color:var(--green);color:white;font-weight:500;}
 .hbtn.cheapest:not(.active){border-color:var(--green);color:var(--green);}
 .hbtn.priciest:not(.active){border-color:var(--red);color:var(--red);}
+.hbtn.periodo-punta{border-color:#E24B4A;color:#E24B4A;background:rgba(226,75,74,0.08);}
+.hbtn.periodo-llano{border-color:#EF9F27;color:#EF9F27;background:rgba(239,159,39,0.07);}
+.hbtn.periodo-valle{border-color:#1D9E75;color:#1D9E75;background:rgba(29,158,117,0.08);}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
 @media(max-width:640px){.metrics{grid-template-columns:1fr 1fr;}}
 .metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.875rem 1rem;}
@@ -177,10 +180,16 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
         <button class="ghost" onclick="setHours('none')">Ninguna</button>
         <button class="ghost" onclick="setHours('cheap')">3 más baratas</button>
       </div>
-      <div class="legend">
+      <div class="legend" id="leyLlano">
         <span><span class="ldot" style="background:var(--green);"></span>Activa</span>
         <span><span class="ldot" style="border:1px solid var(--green);background:transparent;"></span>Más barata</span>
         <span><span class="ldot" style="border:1px solid var(--red);background:transparent;"></span>Más cara</span>
+      </div>
+      <div class="legend" id="leyPeriodos" style="display:none;">
+        <span><span class="ldot" style="background:var(--green);"></span>Activa</span>
+        <span><span class="ldot" style="background:rgba(29,158,117,0.08);border:1px solid var(--green);"></span>Valle (00–08h)</span>
+        <span><span class="ldot" style="background:rgba(239,159,39,0.07);border:1px solid var(--amber);"></span>Llano</span>
+        <span><span class="ldot" style="background:rgba(226,75,74,0.08);border:1px solid var(--red);"></span>Punta (10–14h · 18–22h)</span>
       </div>
       <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
       <div class="hour-grid" id="hg2"></div>
@@ -438,9 +447,9 @@ function showSection(id, btn){
   if(id==='optimal') document.getElementById('optDate').value=document.getElementById('datePicker').value;
   if(id==='compare'){
     const d=document.getElementById('datePicker').value;
-    const d2=new Date(d); d2.setDate(d2.getDate()+1);
-    document.getElementById('cmpDateA').value=d;
-    document.getElementById('cmpDateB').value=d2.toISOString().slice(0,10);
+    const dYest=new Date(d); dYest.setDate(dYest.getDate()-1);
+    document.getElementById('cmpDateA').value=dYest.toISOString().slice(0,10);
+    document.getElementById('cmpDateB').value=d;
   }
 }
 
@@ -501,21 +510,47 @@ function buildExtras(){
 function toggleExtra(id,v){extraState[id].active=v;buildExtras();compute();}
 function updateExtra(id,v){extraState[id].kw=parseFloat(v);document.getElementById('val_'+id).textContent=fmt(parseFloat(v),2)+' kW';compute();}
 
+/* ── PERIODOS 2.0TD ── */
+function periodo2otd(h){
+  if(h>=0&&h<8) return 'valle';
+  if((h>=10&&h<14)||(h>=18&&h<22)) return 'punta';
+  return 'llano';
+}
+
 /* ── HORAS BOTONES ── */
 function buildHours(){
   const pl=Object.entries(prices).map(([h,p])=>({h:+h,p})).sort((a,b)=>a.p-b.p);
   const cheapH=pl.length?pl[0].h:-1, priH=pl.length?pl[pl.length-1].h:-1;
+  const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
   ['hg1','hg2'].forEach((gid,gi)=>{
     const el=document.getElementById(gid); el.innerHTML='';
     for(let h=gi*12;h<gi*12+12;h++){
       const b=document.createElement('button');
-      b.className='hbtn'+(selHrs.has(h)?' active':'')+(h===cheapH&&!selHrs.has(h)?' cheapest':'')+(h===priH&&!selHrs.has(h)?' priciest':'');
+      const per=periodo2otd(h);
+      let cls='hbtn';
+      if(selHrs.has(h)){
+        cls+=' active';
+      } else if(is2otd){
+        cls+=per==='punta'?' periodo-punta':per==='valle'?' periodo-valle':' periodo-llano';
+      } else {
+        if(h===cheapH) cls+=' cheapest';
+        if(h===priH)   cls+=' priciest';
+      }
+      b.className=cls;
+      const perLabel=is2otd?` · ${per.charAt(0).toUpperCase()+per.slice(1)}`:'';
       b.textContent=fmtH(h);
-      if(prices[h]) b.title=fmt(prices[h]*1000,2)+' €/MWh';
+      if(prices[h]) b.title=fmt(prices[h]*1000,2)+' €/MWh'+perLabel;
       b.onclick=()=>{selHrs.has(h)?selHrs.delete(h):selHrs.add(h);buildHours();compute();};
       el.appendChild(b);
     }
   });
+  const leyLlano=document.getElementById('leyLlano');
+  const leyPeriodos=document.getElementById('leyPeriodos');
+  if(leyLlano&&leyPeriodos){
+    leyLlano.style.display=is2otd?'none':'flex';
+    leyPeriodos.style.display=is2otd?'flex':'none';
+  }
 }
 function setHours(m){
   selHrs.clear();
@@ -974,31 +1009,154 @@ document.addEventListener('click',e=>{
 function exportPDF(){
   const bono=parseFloat(document.getElementById('bonoSel').value)||0;
   const kw=kwTotal(); const avg=avgPrice();
-  let bruto=0;
-  if(activeTab==='botones'){[...selHrs].forEach(h=>{bruto+=kw*(prices[h]??avg);});}
-  else{franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});}
-  const final=bruto*(1-bono/100);
+  const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
+  const IMP_ELEC=0.0511269632, IVA=0.21;
+  const TERM_POT_MES=5.75*(2.375388+0.080738);
+  let bruto=0, parts=[];
+  if(activeTab==='botones'){
+    [...selHrs].sort((a,b)=>a-b).forEach(h=>{
+      const p=prices[h]??avg;
+      bruto+=kw*p;
+      parts.push({h,p,coste:kw*p,per:periodo2otd(h)});
+    });
+  } else {
+    franjas.forEach(f=>{
+      const seg=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw);
+      bruto+=seg.coste;
+      seg.tramos.forEach(t=>parts.push({h:t.h,p:t.p,coste:t.coste,frac:t.frac,per:periodo2otd(t.h)}));
+    });
+  }
+  const ahorro=bruto*(bono/100);
+  const brutoConBono=bruto-ahorro;
+  const impElec=brutoConBono*IMP_ELEC;
+  const subtotal=brutoConBono+impElec;
+  const iva=subtotal*IVA;
+  const totalImp=subtotal+iva;
+  const finalCost=is2otd?totalImp:brutoConBono;
   const date=document.getElementById('datePicker').value;
   const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>`${m.label} (${state[m.id].mode})`)
     .concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>`${e.label} ${fmt(extraState[e.id].kw,2)}kW`)).join(', ')||'—';
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe AC ${date}</title>
-  <style>body{font-family:Arial,sans-serif;padding:2rem;color:#111;}h1{font-size:20px;margin-bottom:.5rem;}
-  table{width:100%;border-collapse:collapse;margin:1rem 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}
-  th{background:#f5f5f5;}.total{font-size:22px;font-weight:bold;color:#1D9E75;}.muted{color:#666;font-size:12px;}</style>
-  </head><body>
-  <h1>⚡ Informe de consumo eléctrico</h1>
-  <p class="muted">Generado el ${new Date().toLocaleString('es-ES')} · Gabba82/ac-cost-web</p>
-  <table>
-    <tr><th>Fecha</th><td>${date}</td></tr>
-    <tr><th>Aparatos activos</th><td>${aparatos}</td></tr>
-    <tr><th>Potencia total</th><td>${fmt(kw,2)} kW</td></tr>
-    <tr><th>Coste bruto</th><td>${fmt(bruto,3)} €</td></tr>
-    <tr><th>Descuento bono social</th><td>${bono}% (−${fmt(bruto*bono/100,3)} €)</td></tr>
-    <tr><th>Coste final</th><td><strong class="total">${fmt(final,3)} €</strong></td></tr>
-    <tr><th>Precio medio PVPC</th><td>${fmt(avg*1000,2)} €/MWh</td></tr>
-  </table>
-  <script>window.print();window.close();<\/script></body></html>`);
+
+  const perColor={punta:'#c0392b',llano:'#d68910',valle:'#1a7a58'};
+  const desgloseFila=parts.length?parts.sort((a,b)=>a.h-b.h).map(p=>`
+    <tr>
+      <td>${String(p.h).padStart(2,'0')}:00${p.frac&&p.frac<1?` (${fmt(p.frac*60,0)} min)`:''}</td>
+      ${is2otd?`<td style="color:${perColor[p.per]||'#333'};font-weight:600;">${p.per.charAt(0).toUpperCase()+p.per.slice(1)}</td>`:''}
+      <td>${fmt(p.p*1000,2)} €/MWh</td>
+      <td style="font-weight:600;">${fmt(p.coste,4)} €</td>
+    </tr>`).join(''):'';
+
+  const html=`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Informe consumo · ${date}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a2e;background:#fff;padding:0;}
+  .page{max-width:780px;margin:0 auto;padding:2.5rem 2rem;}
+  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1D9E75;padding-bottom:1.25rem;margin-bottom:1.75rem;}
+  .header-left h1{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
+  .header-left p{font-size:12px;color:#666;}
+  .badge{background:#1D9E75;color:white;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem;}
+  .box{border:1px solid #e8e8e8;border-radius:8px;padding:1rem;}
+  .box-title{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;}
+  .box-val{font-size:20px;font-weight:700;color:#1a1a2e;}
+  .box-sub{font-size:11px;color:#888;margin-top:3px;}
+  .box.green{border-color:#1D9E75;background:#f0faf5;}
+  .box.green .box-val{color:#1D9E75;}
+  .box.amber{border-color:#EF9F27;background:#fffbf0;}
+  .box.amber .box-val{color:#d68910;}
+  table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:13px;}
+  th{background:#f7f7f7;padding:8px 10px;text-align:left;font-size:11px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #e8e8e8;}
+  td{padding:8px 10px;border-bottom:1px solid #f0f0f0;}
+  tr:last-child td{border-bottom:none;}
+  .section-title{font-size:13px;font-weight:700;color:#1a1a2e;margin:1.5rem 0 .75rem;padding-bottom:.5rem;border-bottom:1px solid #e8e8e8;}
+  .fiscal-table td:first-child{color:#555;}
+  .fiscal-table td:last-child{text-align:right;font-weight:600;}
+  .fiscal-table tr.total td{font-size:15px;color:#1D9E75;border-top:2px solid #1D9E75;padding-top:10px;}
+  .punta{color:#c0392b;font-weight:600;}
+  .llano{color:#d68910;font-weight:600;}
+  .valle{color:#1a7a58;font-weight:600;}
+  .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #e8e8e8;font-size:11px;color:#aaa;text-align:center;}
+  @media print{body{padding:0;}.page{padding:1.5rem 1rem;}}
+</style></head>
+<body><div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <h1>⚡ Informe de consumo eléctrico</h1>
+    <p>Fecha de análisis: <strong>${date}</strong> · Generado el ${new Date().toLocaleString('es-ES')}</p>
+  </div>
+  <span class="badge">${is2otd?'PVPC 2.0TD':'PVPC'}</span>
+</div>
+
+<div class="grid2">
+  <div class="box">
+    <p class="box-title">Aparatos activos</p>
+    <p class="box-val" style="font-size:14px;line-height:1.5;">${aparatos||'—'}</p>
+    <p class="box-sub">Potencia total: ${fmt(kw,2)} kW</p>
+  </div>
+  <div class="box">
+    <p class="box-title">Precio medio PVPC</p>
+    <p class="box-val">${fmt(avg*1000,2)} <span style="font-size:14px;font-weight:400;">€/MWh</span></p>
+    <p class="box-sub">Horas analizadas: ${parts.length||selHrs.size}</p>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="box${bono>0?' amber':''}" >
+    <p class="box-title">Coste energía</p>
+    <p class="box-val">${fmt(bruto,3)} €</p>
+    <p class="box-sub">Sin impuestos ni descuentos</p>
+  </div>
+  ${bono>0?`<div class="box amber">
+    <p class="box-title">Ahorro Bono Social (${bono}%)</p>
+    <p class="box-val">−${fmt(ahorro,3)} €</p>
+    <p class="box-sub">Descuento aplicado sobre energía</p>
+  </div>`:''}
+</div>
+
+${is2otd?`
+<p class="section-title">Desglose fiscal (tarifa PVPC 2.0TD)</p>
+<table class="fiscal-table">
+  <tr><td>Término de energía (con bono ${bono}%)</td><td>${fmt(brutoConBono,4)} €</td></tr>
+  <tr><td>Impuesto eléctrico (5,11269632%)</td><td>${fmt(impElec,4)} €</td></tr>
+  <tr><td>Subtotal antes de IVA</td><td>${fmt(subtotal,4)} €</td></tr>
+  <tr><td>IVA (21%)</td><td>${fmt(iva,4)} €</td></tr>
+  <tr class="total"><td><strong>Total con impuestos</strong></td><td><strong>${fmt(totalImp,3)} €</strong></td></tr>
+  <tr><td style="color:#aaa;font-size:12px;">Término de potencia (fijo mensual, no incluido)</td><td style="color:#aaa;font-size:12px;">${fmt(TERM_POT_MES,3)} €/mes</td></tr>
+</table>`:''}
+
+<div class="box green" style="margin-top:1.5rem;">
+  <p class="box-title">Coste final estimado</p>
+  <p class="box-val" style="font-size:28px;">${fmt(finalCost,3)} €</p>
+  <p class="box-sub">${is2otd?'Incluye impuesto eléctrico e IVA, sin término potencia':'Término de energía con bono social'}</p>
+</div>
+
+${parts.length?`
+<p class="section-title">Desglose hora a hora</p>
+<table>
+  <tr>
+    <th>Hora</th>
+    ${is2otd?'<th>Periodo</th>':''}
+    <th>Precio PVPC</th>
+    <th>Coste estimado</th>
+  </tr>
+  ${desgloseFila}
+</table>`:''}
+
+<div class="footer">Gabba82/ac-cost-web · Precios: ESIOS/REE · Este informe es una estimación</div>
+</div>
+
+<script>setTimeout(()=>window.print(),400);<\/script>
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
 function showBanner(msg){
