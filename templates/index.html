@@ -167,6 +167,25 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 
   <div class="card">
+    <p class="card-title">Tarifa</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="tarifa" value="pvpc" checked onchange="compute()" style="accent-color:var(--green);"> PVPC (precio horario de mercado)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="tarifa" value="2otd" onchange="compute()" style="accent-color:var(--amber);"> PVPC 2.0TD con impuestos (tu contrato)
+      </label>
+    </div>
+    <div id="tarifa2otd-info" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--amber);">Tu tarifa: PVPC 2.0TD · Energía XXI</strong><br>
+      Potencia contratada: 5,75 kW P1 · 5,75 kW P2<br>
+      Término potencia: 2,375388 €/kW·mes (P1) + 0,080738 €/kW·mes (P2) = <strong style="color:var(--amber);" id="termPotencia">—</strong> €/mes<br>
+      Periodos: <span style="color:var(--red);">Punta 10-14h y 18-22h</span> · <span style="color:var(--amber);">Llano resto</span> · <span style="color:var(--green);">Valle 00-08h</span><br>
+      Impuesto eléctrico: 5,11269632% · IVA: 21%
+    </div>
+  </div>
+
+  <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
       <p class="card-title" style="margin:0;">Horas de uso</p>
     </div>
@@ -198,25 +217,6 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       <div id="franjaList"></div>
       <button class="ghost" style="margin-top:10px;" onclick="addFranja()">+ Añadir franja</button>
       <div class="franja-res" id="franjaRes"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Tarifa</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
-        <input type="radio" name="tarifa" value="pvpc" checked onchange="compute()" style="accent-color:var(--green);"> PVPC (precio horario de mercado)
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
-        <input type="radio" name="tarifa" value="2otd" onchange="compute()" style="accent-color:var(--amber);"> PVPC 2.0TD con impuestos (tu contrato)
-      </label>
-    </div>
-    <div id="tarifa2otd-info" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.8;">
-      <strong style="color:var(--amber);">Tu tarifa: PVPC 2.0TD · Energía XXI</strong><br>
-      Potencia contratada: 5,75 kW P1 · 5,75 kW P2<br>
-      Término potencia: 2,375388 €/kW·mes (P1) + 0,080738 €/kW·mes (P2) = <strong style="color:var(--amber);" id="termPotencia">—</strong> €/mes<br>
-      Periodos: <span style="color:var(--red);">Punta 10-14h y 18-22h</span> · <span style="color:var(--amber);">Llano resto</span> · <span style="color:var(--green);">Valle 00-08h</span><br>
-      Impuesto eléctrico: 5,11269632% · IVA: 21%
     </div>
   </div>
 
@@ -376,6 +376,19 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 
   <div class="card">
+    <p class="card-title">Tarifa por defecto</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="settingsTarifa" value="pvpc" style="accent-color:var(--green);"> PVPC (precio horario)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="radio" name="settingsTarifa" value="2otd" style="accent-color:var(--amber);"> PVPC 2.0TD con impuestos
+      </label>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Se aplicará automáticamente al cargar la aplicación.</p>
+  </div>
+
+  <div class="card">
     <p class="card-title">Bono social por defecto</p>
     <select id="settingsBonoSel">
       <option value="0">Sin bono social</option>
@@ -458,9 +471,12 @@ const today=new Date().toISOString().slice(0,10);
 document.getElementById('datePicker').value=today;
 document.getElementById('optDate').value=today;
 
-// Aplicar bono social por defecto
+// Aplicar tarifa y bono por defecto
 const bonoSel=document.getElementById('bonoSel');
 bonoSel.value=String(settings.bono_social_pct||42.5);
+const defTarifa=settings.tarifa_defecto||'pvpc';
+const tarifaRadio=document.querySelector(`input[name="tarifa"][value="${defTarifa}"]`);
+if(tarifaRadio) tarifaRadio.checked=true;
 
 buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
 document.querySelectorAll('input[name="tarifa"]').forEach(r=>r.addEventListener('change',compute));
@@ -951,6 +967,9 @@ function loadSettingsUI(){
   document.getElementById('munCodigo').textContent=settings.aemet_municipio?`(código: ${settings.aemet_municipio})`:'';
   document.getElementById('settingsBonoSel').value=String(settings.bono_social_pct||42.5);
   document.getElementById('settingsPromUrl').value=settings.prometheus_url||'';
+  const defT=settings.tarifa_defecto||'pvpc';
+  const r=document.querySelector(`input[name="settingsTarifa"][value="${defT}"]`);
+  if(r) r.checked=true;
 }
 
 async function saveSettings(){
@@ -960,12 +979,18 @@ async function saveSettings(){
     prometheus_url:  document.getElementById('settingsPromUrl').value.trim(),
     aemet_municipio: settings.aemet_municipio,
     aemet_municipio_nombre: settings.aemet_municipio_nombre,
+    tarifa_defecto: document.querySelector('input[name="settingsTarifa"]:checked')?.value||'pvpc',
   };
   try{
     const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     settings=await r.json();
     document.getElementById('bonoSel').value=String(settings.bono_social_pct);
     document.getElementById('promUrlLabel').textContent=settings.prometheus_url||'—';
+    // Aplicar tarifa seleccionada en tiempo real
+    const t=settings.tarifa_defecto||'pvpc';
+    const tr=document.querySelector(`input[name="tarifa"][value="${t}"]`);
+    if(tr){tr.checked=true;}
+    buildHours(); compute();
     showBanner('✅ Ajustes guardados');
   }catch(e){alert('Error guardando ajustes: '+e.message);}
   finally{btn.textContent='Guardar ajustes';}
