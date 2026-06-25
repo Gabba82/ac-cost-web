@@ -7,6 +7,8 @@ services:
       - "5656:5656"
     env_file:
       - .env
+    volumes:
+      - /DATA/AppData/ac-cost-web/config:/config
     networks:
       - observatorio_default
       - bridge_net
