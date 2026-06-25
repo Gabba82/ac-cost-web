@@ -6,7 +6,95 @@
 <title>⚡ Calculadora Consumo Eléctrico</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--border:rgba(255,255,255,0.08);--text:#e8eaf0;--muted:#8b92a5;--green:#1D9E75;--gdim:rgba(29,158,117,0.15);--amber:#EF9F27;--red:#E24B4A;--blue:#378ADD;--r:10px;--rs:6px;}
+/* ══ SISTEMA DE SKINS ══════════════════════════════════════════════════════ */
+
+/* Oscuro (default) */
+:root,[data-skin="oscuro"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;
+  --border:rgba(255,255,255,0.08);
+  --text:#e8eaf0;--muted:#8b92a5;
+  --green:#1D9E75;--gdim:rgba(29,158,117,0.15);
+  --amber:#EF9F27;--red:#E24B4A;--blue:#378ADD;
+  --r:10px;--rs:6px;
+  --font:inherit;
+}
+
+/* Claro */
+[data-skin="claro"]{
+  --bg:#f5f6fa;--bg2:#ffffff;--bg3:#eef0f6;
+  --border:rgba(0,0,0,0.09);
+  --text:#1a1d2e;--muted:#6b7280;
+  --green:#0d8a62;--gdim:rgba(13,138,98,0.12);
+  --amber:#d97706;--red:#dc2626;--blue:#2563eb;
+  --r:10px;--rs:6px;
+  --font:inherit;
+}
+[data-skin="claro"] input[type=date],
+[data-skin="claro"] input[type=time],
+[data-skin="claro"] input[type=number],
+[data-skin="claro"] input[type=text],
+[data-skin="claro"] select{color:var(--text);}
+[data-skin="claro"] .nav-tab{color:var(--muted);}
+[data-skin="claro"] .hbtn{color:var(--muted);}
+
+/* Grafana */
+[data-skin="grafana"]{
+  --bg:#111217;--bg2:#181b1f;--bg3:#1f2329;
+  --border:rgba(255,255,255,0.07);
+  --text:#d8d9da;--muted:#6e9fff;
+  --green:#73bf69;--gdim:rgba(115,191,105,0.12);
+  --amber:#f2cc0c;--red:#f2495c;--blue:#5794f2;
+  --r:4px;--rs:2px;
+  --font:'Roboto Mono','Courier New',monospace;
+}
+[data-skin="grafana"] body{font-family:var(--font);}
+[data-skin="grafana"] .card{border-left:2px solid var(--blue);}
+[data-skin="grafana"] .card-title{color:var(--blue);letter-spacing:.1em;}
+[data-skin="grafana"] .metric.hl{border-color:var(--green);border-left-width:2px;}
+[data-skin="grafana"] header h1{font-family:var(--font);letter-spacing:.05em;}
+
+/* Terminal */
+[data-skin="terminal"]{
+  --bg:#000000;--bg2:#0a0a0a;--bg3:#111111;
+  --border:rgba(0,255,70,0.2);
+  --text:#00ff46;--muted:#007a22;
+  --green:#00ff46;--gdim:rgba(0,255,70,0.08);
+  --amber:#ffff00;--red:#ff3333;--blue:#00aaff;
+  --r:0px;--rs:0px;
+  --font:'Courier New','Lucida Console',monospace;
+}
+[data-skin="terminal"] body{font-family:var(--font);}
+[data-skin="terminal"] .card{border:1px solid var(--green);box-shadow:0 0 8px rgba(0,255,70,.08);}
+[data-skin="terminal"] .card-title{color:var(--green);}
+[data-skin="terminal"] button.primary{background:transparent;border:1px solid var(--green);color:var(--green);}
+[data-skin="terminal"] button.primary:hover{background:var(--green);color:#000;}
+[data-skin="terminal"] button.ghost{border-color:var(--muted);}
+[data-skin="terminal"] .metric.hl{border-color:var(--green);box-shadow:0 0 6px rgba(0,255,70,.2);}
+[data-skin="terminal"] .metric-value{text-shadow:0 0 8px currentColor;}
+[data-skin="terminal"] .hbtn.active{background:var(--green);color:#000;font-weight:700;}
+[data-skin="terminal"] .nav-tab.active{background:var(--green);color:#000;}
+[data-skin="terminal"] .status-bar{border-color:var(--green);}
+[data-skin="terminal"] header h1::before{content:'> ';}
+[data-skin="terminal"] .pill{border:1px solid var(--green);border-radius:0;}
+
+/* Nord */
+[data-skin="nord"]{
+  --bg:#2e3440;--bg2:#3b4252;--bg3:#434c5e;
+  --border:rgba(216,222,233,0.1);
+  --text:#eceff4;--muted:#8895aa;
+  --green:#a3be8c;--gdim:rgba(163,190,140,0.15);
+  --amber:#ebcb8b;--red:#bf616a;--blue:#81a1c1;
+  --r:8px;--rs:4px;
+  --font:inherit;
+}
+[data-skin="nord"] .card{background:var(--bg2);}
+[data-skin="nord"] .metric{background:var(--bg3);}
+[data-skin="nord"] button.primary{background:#5e81ac;}
+[data-skin="nord"] .nav-tab.active{background:#5e81ac;border-color:#5e81ac;}
+[data-skin="nord"] .hbtn.active{background:#5e81ac;border-color:#5e81ac;}
+[data-skin="nord"] .metric.hl{border-color:var(--green);}
+[data-skin="nord"] .pill{background:rgba(94,129,172,.2);color:#81a1c1;}
+[data-skin="nord"] input:focus,[data-skin="nord"] select:focus{border-color:#81a1c1;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;}
 .app{max-width:960px;margin:0 auto;padding:1.5rem 1rem 4rem;}
@@ -119,6 +207,9 @@ button.danger:hover{background:var(--red);color:white;}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gdim);color:var(--green);margin-left:8px;}
 .save-banner{display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:var(--green);color:white;padding:10px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
+.skin-btn{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;padding:0;flex-shrink:0;}
+.skin-btn:hover{transform:scale(1.2);}
+.skin-btn.active{border-color:var(--green)!important;transform:scale(1.2);box-shadow:0 0 0 2px var(--green);}
 .device-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .device-row:last-child{border-bottom:none;}
 .device-row.disabled{opacity:.4;}
@@ -141,6 +232,16 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   <span style="font-size:22px;">⚡</span>
   <h1>Calculadora consumo eléctrico</h1>
   <span class="pill">PVPC · ESIOS · AEMET</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px;" title="Cambiar tema">
+    <span style="font-size:11px;color:var(--muted);">🎨</span>
+    <div id="skinPicker" style="display:flex;gap:5px;align-items:center;">
+      <button class="skin-btn" data-skin="oscuro"   title="Oscuro"   onclick="setSkin('oscuro')"   style="background:#0f1117;"></button>
+      <button class="skin-btn" data-skin="claro"    title="Claro"    onclick="setSkin('claro')"    style="background:#f5f6fa;border-color:#ccc;"></button>
+      <button class="skin-btn" data-skin="grafana"  title="Grafana"  onclick="setSkin('grafana')"  style="background:#111217;border-color:#5794f2;"></button>
+      <button class="skin-btn" data-skin="terminal" title="Terminal" onclick="setSkin('terminal')" style="background:#000;border-color:#00ff46;"></button>
+      <button class="skin-btn" data-skin="nord"     title="Nord"     onclick="setSkin('nord')"     style="background:#2e3440;border-color:#81a1c1;"></button>
+    </div>
+  </div>
 </header>
 
 <div class="status-bar">
@@ -595,6 +696,7 @@ buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern()
 document.querySelectorAll('input[name="tarifa"]').forEach(r=>r.addEventListener('change',()=>{buildHours();compute();}));
 loadFromURL();
 if(!window.location.search) loadPrices();
+initSkin();
 
 /* ── PESTAÑAS ── */
 function switchTab(t){
@@ -1107,6 +1209,7 @@ async function saveSettings(){
     aemet_municipio: settings.aemet_municipio,
     aemet_municipio_nombre: settings.aemet_municipio_nombre,
     tarifa_defecto: document.querySelector('input[name="settingsTarifa"]:checked')?.value||'pvpc',
+    skin: localStorage.getItem('skin')||'oscuro',
   };
   try{
     const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -1850,6 +1953,33 @@ if(pdfBtn){
 setInterval(()=>{
   if(document.getElementById('sec-ahora')?.classList.contains('active')) loadAhora();
 },300000);
+
+/* ══ SKINS ══════════════════════════════════════════════════════════════ */
+const SKINS = ['oscuro','claro','grafana','terminal','nord'];
+
+function setSkin(skin){
+  if(!SKINS.includes(skin)) skin='oscuro';
+  document.documentElement.setAttribute('data-skin', skin);
+  localStorage.setItem('skin', skin);
+  // Actualizar botones
+  document.querySelectorAll('.skin-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.skin===skin);
+  });
+  // Guardar en settings del servidor (no bloqueante)
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({skin})}).catch(()=>{});
+  // Redibujar gráficas con nuevos colores
+  if(chartObj) updateChart();
+  if(ahoraChartObj) loadAhora();
+  if(historicoChartObj) loadHistorico();
+  if(compareChartObj) runCompare?.();
+}
+
+function initSkin(){
+  // Prioridad: settings servidor > localStorage > oscuro
+  const skinFromSettings = settings.skin || localStorage.getItem('skin') || 'oscuro';
+  setSkin(skinFromSettings);
+}
 
 function showBanner(msg){
   const b=document.getElementById('saveBanner');
