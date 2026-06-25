@@ -1323,11 +1323,10 @@ function shareCalc(){
   } else {
     params.set('franjas', JSON.stringify(franjas.map(f=>({d:f.desde,h:f.hasta}))));
   }
-  // Máquinas AC activas
-  const acAct=MACHINES.filter(m=>state[m.id].active).map(m=>m.id+'_'+state[m.id].mode);
+  // Usar | como separador (los IDs tienen _ y rompian el split)
+  const acAct=MACHINES.filter(m=>state[m.id].active).map(m=>m.id+'|'+state[m.id].mode);
   if(acAct.length) params.set('ac', acAct.join(','));
-  // Aparatos extra activos
-  const exActShare=EXTRAS.filter(e=>extraState[e.id].active).map(e=>e.id+'_'+extraState[e.id].kw.toFixed(2));
+  const exActShare=EXTRAS.filter(e=>extraState[e.id]?.active).map(e=>e.id+'|'+extraState[e.id].kw.toFixed(2));
   if(exActShare.length) params.set('ex', exActShare.join(','));
 
   const url=window.location.origin+window.location.pathname+'?'+params.toString();
@@ -1342,27 +1341,33 @@ function loadFromURL(){
   const p=new URLSearchParams(window.location.search);
   if(!p.has('date')) return;
 
-  // Fecha
   const d=p.get('date');
   if(d) document.getElementById('datePicker').value=d;
 
-  // Bono
   const b=p.get('bono');
   if(b) document.getElementById('bonoSel').value=b;
 
-  // Tarifa
   const t=p.get('tarifa');
   if(t){const r=document.querySelector(`input[name="tarifa"][value="${t}"]`);if(r)r.checked=true;}
 
-  // Máquinas AC
+  // Máquinas AC — separador | para no romper IDs con _
   const ac=p.get('ac');
-  if(ac) ac.split(',').forEach(s=>{const[id,mode]=s.split('_');if(state[id]){state[id].active=true;if(mode)state[id].mode=mode;}});
+  if(ac) ac.split(',').forEach(s=>{
+    const sep=s.lastIndexOf('|');
+    if(sep===-1) return;
+    const id=s.slice(0,sep), mode=s.slice(sep+1);
+    if(state[id]){state[id].active=true; state[id].mode=mode||'frio';}
+  });
 
-  // Extras
+  // Extras — mismo separador |
   const ex=p.get('ex');
-  if(ex) ex.split(',').forEach(s=>{const[id,kw]=s.split('_');if(extraState[id]){extraState[id].active=true;if(kw)extraState[id].kw=parseFloat(kw);}});
+  if(ex) ex.split(',').forEach(s=>{
+    const sep=s.lastIndexOf('|');
+    if(sep===-1) return;
+    const id=s.slice(0,sep), kw=parseFloat(s.slice(sep+1));
+    if(extraState[id]){extraState[id].active=true; if(kw) extraState[id].kw=kw;}
+  });
 
-  // Tab y horas
   const tab=p.get('tab')||'botones';
   if(tab==='franjas'){
     const fr=p.get('franjas');
@@ -1376,7 +1381,7 @@ function loadFromURL(){
 
   buildMachines(); buildExtras(); buildHours();
   loadPrices(d);
-  history.replaceState({},'',window.location.pathname); // limpiar URL tras cargar
+  history.replaceState({},'',window.location.pathname);
 }
 
 /* ── PRESUPUESTO ── */
