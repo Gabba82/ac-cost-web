@@ -121,16 +121,13 @@ button.danger:hover{background:var(--red);color:white;}
 footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
 .device-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .device-row:last-child{border-bottom:none;}
-.device-row.disabled{opacity:.45;}
-.device-name{flex:1;min-width:0;}
+.device-row.disabled{opacity:.4;}
+.device-name{flex:1;min-width:0;overflow:hidden;}
+.dev-label-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .device-kw{color:var(--amber);font-weight:600;min-width:56px;text-align:right;}
-.dev-tag{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg3);color:var(--muted);flex-shrink:0;}
+.dev-tag{font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0;white-space:nowrap;}
 .dev-tag.predefined{background:rgba(55,138,221,.12);color:var(--blue);}
 .dev-tag.custom{background:rgba(29,158,117,.12);color:var(--green);}
-.editable-field{background:transparent;border:none;outline:none;color:inherit;font-size:inherit;font-family:inherit;padding:0;width:100%;cursor:text;}
-.editable-field:hover{text-decoration:underline dotted var(--muted);}
-.editable-field:focus{background:var(--bg3);border-radius:4px;padding:2px 6px;text-decoration:none;cursor:text;}
-.editable-kw{width:52px;text-align:right;color:var(--amber);font-weight:600;}
 .ahora-machine{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .ahora-machine:last-child{border-bottom:none;}
 .badge-caro{background:rgba(226,75,74,.15);color:var(--red);border-radius:var(--rs);padding:2px 8px;font-size:11px;font-weight:600;}
@@ -1605,62 +1602,96 @@ function renderDeviceList(){
   const el=document.getElementById('deviceList');
   el.innerHTML='';
 
-  // Predefinidos
-  EXTRAS.forEach(e=>{
-    const enabled=!disabledExtras.has(e.id);
+  const makeRow=(cfg)=>{
+    const {id, label, kw, enabled, isPredefined} = cfg;
     const row=document.createElement('div');
     row.className='device-row'+(enabled?'':' disabled');
     row.innerHTML=`
       <label class="toggle" style="flex-shrink:0;">
-        <input type="checkbox" ${enabled?'checked':''} onchange="togglePredefined('${e.id}',this.checked)">
+        <input type="checkbox" ${enabled?'checked':''}
+          onchange="${isPredefined?`togglePredefined('${id}',this.checked)`:`toggleCustomDevice('${id}',this.checked)`}">
         <span class="slider"></span>
       </label>
-      <span class="dev-tag predefined">predefinido</span>
-      <span class="device-name">
-        <input class="editable-field" value="${e.label}" readonly
-          onfocus="this.removeAttribute('readonly')"
-          onblur="updatePredefinedLabel('${e.id}',this.value);this.setAttribute('readonly','')"
-          onkeydown="if(event.key==='Enter')this.blur()">
+      <span class="dev-tag ${isPredefined?'predefined':'custom'}">${isPredefined?'predefinido':'custom'}</span>
+      <span class="device-name" style="flex:1;min-width:120px;">
+        <span class="dev-label-text" id="lbl_${id}" style="cursor:pointer;" onclick="startEditLabel('${id}','${isPredefined?'pre':'cus'}')" title="Clic para editar nombre">${label}</span>
       </span>
-      <input class="editable-field editable-kw" type="number" value="${fmt(extraState[e.id]?.kw||e.def,2).replace(',','.')}" step="0.01" min="0.01"
-        onchange="updatePredefinedKw('${e.id}',this.value)"
-        title="Editar kW">
-      <span style="font-size:11px;color:var(--muted);flex-shrink:0;">kW</span>`;
-    el.appendChild(row);
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+        <span style="font-size:11px;color:var(--muted);">kW:</span>
+        <input type="number" id="kw_${id}" value="${parseFloat(kw).toFixed(2)}" step="0.01" min="0.01"
+          style="width:64px;padding:3px 6px;font-size:12px;font-weight:600;color:var(--amber);background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);text-align:right;"
+          onchange="${isPredefined?`updatePredefinedKw('${id}',this.value)`:`updateCustomKw('${id}',this.value)`}">
+      </div>
+      <button class="btn-rm" onclick="${isPredefined?`removePredefined('${id}')`:`removeDevice('${id}')`}" title="${isPredefined?'Ocultar de la lista':'Eliminar'}">×</button>`;
+    return row;
+  };
+
+  // Predefinidos activos
+  const activePre=EXTRAS.filter(e=>!disabledExtras.has(e.id));
+  const hiddenPre=EXTRAS.filter(e=>disabledExtras.has(e.id));
+
+  activePre.forEach(e=>{
+    el.appendChild(makeRow({id:e.id,label:e.label,kw:extraState[e.id]?.kw||e.def,enabled:true,isPredefined:true}));
   });
 
-  // Separador si hay custom
+  // Separador custom
   if(customDevices.length){
     const sep=document.createElement('p');
-    sep.style.cssText='font-size:11px;color:var(--muted);padding:12px 0 6px;border-top:1px solid var(--border);margin-top:4px;';
-    sep.textContent='Aparatos personalizados';
+    sep.style.cssText='font-size:11px;color:var(--muted);padding:12px 0 4px;border-top:1px solid var(--border);margin-top:4px;';
+    sep.textContent='Aparatos añadidos';
     el.appendChild(sep);
   }
 
-  // Custom
+  // Custom devices
   customDevices.forEach(d=>{
-    const row=document.createElement('div');row.className='device-row';
-    row.innerHTML=`
-      <label class="toggle" style="flex-shrink:0;">
-        <input type="checkbox" checked onchange="toggleCustomDevice('${d.id}',this.checked)">
-        <span class="slider"></span>
-      </label>
-      <span class="dev-tag custom">custom</span>
-      <span class="device-name">
-        <input class="editable-field" value="${d.label}" readonly
-          onfocus="this.removeAttribute('readonly')"
-          onblur="updateCustomLabel('${d.id}',this.value);this.setAttribute('readonly','')"
-          onkeydown="if(event.key==='Enter')this.blur()">
-      </span>
-      <input class="editable-field editable-kw" type="number" value="${d.kw.toFixed(2)}" step="0.01" min="0.01"
-        onchange="updateCustomKw('${d.id}',this.value)"
-        title="Editar kW">
-      <span style="font-size:11px;color:var(--muted);flex-shrink:0;">kW</span>
-      <button class="btn-rm" onclick="removeDevice('${d.id}')" title="Eliminar">×</button>`;
-    el.appendChild(row);
+    el.appendChild(makeRow({id:d.id,label:d.label,kw:d.kw,enabled:true,isPredefined:false}));
   });
 
+  // Predefinidos ocultos (colapsados)
+  if(hiddenPre.length){
+    const sep=document.createElement('details');
+    sep.style.cssText='margin-top:12px;border-top:1px solid var(--border);padding-top:8px;';
+    sep.innerHTML=`<summary style="font-size:12px;color:var(--muted);cursor:pointer;">
+      ${hiddenPre.length} aparato${hiddenPre.length!==1?'s':''} oculto${hiddenPre.length!==1?'s':''} (clic para ver)</summary>`;
+    hiddenPre.forEach(e=>{
+      sep.appendChild(makeRow({id:e.id,label:e.label,kw:extraState[e.id]?.kw||e.def,enabled:false,isPredefined:true}));
+    });
+    el.appendChild(sep);
+  }
+
   buildExtras();
+}
+
+function startEditLabel(id, type){
+  const span=document.getElementById('lbl_'+id);
+  if(!span) return;
+  const current=span.textContent;
+  const input=document.createElement('input');
+  input.type='text'; input.value=current;
+  input.style.cssText='background:var(--bg3);border:1px solid var(--green);border-radius:4px;padding:2px 6px;font-size:13px;color:var(--text);width:100%;outline:none;';
+  span.replaceWith(input);
+  input.focus(); input.select();
+  const save=()=>{
+    const val=input.value.trim()||current;
+    const newSpan=document.createElement('span');
+    newSpan.className='dev-label-text'; newSpan.id='lbl_'+id;
+    newSpan.style.cursor='pointer'; newSpan.title='Clic para editar nombre';
+    newSpan.textContent=val;
+    newSpan.onclick=()=>startEditLabel(id,type);
+    input.replaceWith(newSpan);
+    if(val!==current){
+      if(type==='pre') updatePredefinedLabel(id,val);
+      else updateCustomLabel(id,val);
+    }
+  };
+  input.onblur=save;
+  input.onkeydown=e=>{if(e.key==='Enter')input.blur(); if(e.key==='Escape'){input.value=current;input.blur();}};
+}
+
+function removePredefined(id){
+  disabledExtras.add(id);
+  saveDisabledExtras();
+  renderDeviceList();
 }
 
 function togglePredefined(id, enabled){
