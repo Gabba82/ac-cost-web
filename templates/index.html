@@ -546,6 +546,12 @@ let chartObj=null, compareChartObj=null, showTemp=false, franjaId=0;
 let settings = {...INIT_SETTINGS};
 let munSearchTimer = null;
 
+// Estado de aparatos predefinidos desactivados (persiste en localStorage)
+let disabledExtras = new Set(JSON.parse(localStorage.getItem('disabledExtras')||'[]'));
+function saveDisabledExtras(){
+  localStorage.setItem('disabledExtras', JSON.stringify([...disabledExtras]));
+}
+
 const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 let weekHours = [8,8,8,8,8,6,6];
 
@@ -1595,16 +1601,6 @@ END:VEVENT
 }
 
 /* ── APARATOS PERSONALIZADOS ── */
-// Lista maestra unificada: predefinidos + custom
-// enabled: si aparece en la calculadora
-// predefinidos están en EXTRAS, custom en customDevices
-// El estado enabled de predefinidos se guarda en disabledExtras (set de ids)
-let disabledExtras = new Set(JSON.parse(localStorage.getItem('disabledExtras')||'[]'));
-
-function saveDisabledExtras(){
-  localStorage.setItem('disabledExtras', JSON.stringify([...disabledExtras]));
-}
-
 function renderDeviceList(){
   const el=document.getElementById('deviceList');
   el.innerHTML='';
