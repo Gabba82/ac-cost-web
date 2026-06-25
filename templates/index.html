@@ -119,6 +119,14 @@ button.danger:hover{background:var(--red);color:white;}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gdim);color:var(--green);margin-left:8px;}
 .save-banner{display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:var(--green);color:white;padding:10px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
+.device-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.device-row:last-child{border-bottom:none;}
+.device-name{flex:1;}.device-kw{color:var(--amber);font-weight:600;min-width:56px;text-align:right;}
+.ahora-machine{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.ahora-machine:last-child{border-bottom:none;}
+.badge-caro{background:rgba(226,75,74,.15);color:var(--red);border-radius:var(--rs);padding:2px 8px;font-size:11px;font-weight:600;}
+.badge-normal{background:rgba(139,146,165,.1);color:var(--muted);border-radius:var(--rs);padding:2px 8px;font-size:11px;}
+.badge-barato{background:rgba(29,158,117,.15);color:var(--green);border-radius:var(--rs);padding:2px 8px;font-size:11px;font-weight:600;}
 </style>
 </head>
 <body>
@@ -140,6 +148,9 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   <button class="nav-tab" onclick="showSection('optimal',this)">Hora óptima</button>
   <button class="nav-tab" onclick="showSection('monthly',this)">Estimación mensual</button>
   <button class="nav-tab" onclick="showSection('history',this)">Historial</button>
+  <button class="nav-tab" onclick="showSection('ahora',this)">⚡ Ahora</button>
+  <button class="nav-tab" onclick="showSection('historico',this)">📈 Histórico</button>
+  <button class="nav-tab" onclick="showSection('devices',this)">🔌 Aparatos</button>
   <button class="nav-tab" onclick="showSection('settings',this)">⚙ Ajustes</button>
 </div>
 
@@ -357,6 +368,90 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
+
+<!-- ══ AHORA MISMO ══ -->
+<div class="section" id="sec-ahora">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">⚡ Precio ahora mismo</p>
+      <button class="ghost" style="font-size:11px;" onclick="loadAhora()">↻ Actualizar</button>
+    </div>
+    <div class="metrics" id="ahoraMetrics">
+      <div class="metric"><p class="metric-label">Hora actual</p><p class="metric-value" id="ahoraHora">—</p><p class="metric-sub">hora del sistema</p></div>
+      <div class="metric"><p class="metric-label">Precio PVPC</p><p class="metric-value" id="ahoraPrecio">—</p><p class="metric-sub">€/MWh</p></div>
+      <div class="metric hl" id="ahoraCard"><p class="metric-label">vs media del día</p><p class="metric-value" id="ahoraDiff">—</p><p class="metric-sub" id="ahoraDiffSub">—</p></div>
+      <div class="metric"><p class="metric-label">Hora más barata</p><p class="metric-value" id="ahoraMinH">—</p><p class="metric-sub" id="ahoraMinP">—</p></div>
+    </div>
+  </div>
+  <div class="card" id="ahoraMachinesCard" style="display:none;">
+    <p class="card-title">Coste de encender ahora 1 hora</p>
+    <div id="ahoraMachines"></div>
+  </div>
+  <div class="card">
+    <p class="card-title">Curva del día con hora actual marcada</p>
+    <div style="position:relative;height:200px;"><canvas id="ahoraChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ HISTÓRICO 30 DÍAS ══ -->
+<div class="section" id="sec-historico">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">📈 Evolución precio PVPC — últimos 30 días</p>
+      <button class="ghost" style="font-size:11px;" onclick="loadHistorico()">↻ Cargar</button>
+    </div>
+    <div id="historicoStatus" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
+    <div class="metrics" style="margin-bottom:1rem;">
+      <div class="metric"><p class="metric-label">Media 30 días</p><p class="metric-value" id="histAvg">—</p><p class="metric-sub">€/MWh</p></div>
+      <div class="metric"><p class="metric-label">Día más barato</p><p class="metric-value" id="histMin">—</p><p class="metric-sub" id="histMinDate">—</p></div>
+      <div class="metric"><p class="metric-label">Día más caro</p><p class="metric-value" id="histMax">—</p><p class="metric-sub" id="histMaxDate">—</p></div>
+      <div class="metric"><p class="metric-label">Hoy vs media</p><p class="metric-value" id="histTodayDiff">—</p><p class="metric-sub">% diferencia</p></div>
+    </div>
+    <div style="position:relative;height:240px;"><canvas id="historicoChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ APARATOS PERSONALIZADOS ══ -->
+<div class="section" id="sec-devices">
+  <div class="card">
+    <p class="card-title">Buscar consumo con IA</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Escribe el nombre del aparato y la IA buscará su consumo típico en kW.</p>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="deviceSearch" placeholder="Ej: ventilador de pie, aspiradora Roomba, PlayStation 5..." style="flex:1;">
+      <button class="primary" onclick="searchDevice()"><span id="deviceSearchBtnTxt">Buscar</span></button>
+    </div>
+    <div id="deviceSearchResult" style="display:none;margin-top:1rem;background:var(--bg3);border-radius:var(--rs);padding:1rem;">
+      <p class="card-title" id="deviceResultLabel" style="margin-bottom:.5rem;">—</p>
+      <div class="row3" style="margin-bottom:.75rem;">
+        <div><label>kW mínimo</label><input type="number" id="devKwMin" step="0.01" min="0.01"></div>
+        <div><label>kW típico (recomendado)</label><input type="number" id="devKwTipico" step="0.01" min="0.01" style="border-color:var(--green);"></div>
+        <div><label>kW máximo</label><input type="number" id="devKwMax" step="0.01" min="0.01"></div>
+      </div>
+      <p id="deviceNota" style="font-size:12px;color:var(--muted);margin-bottom:.75rem;"></p>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="devCustomLabel" placeholder="Nombre personalizado..." style="flex:1;">
+        <button class="primary" onclick="saveDevice()">+ Añadir a mis aparatos</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">Mis aparatos personalizados</p>
+      <p style="font-size:12px;color:var(--muted);">Se añaden a la sección "Otros aparatos" de la calculadora</p>
+    </div>
+    <div id="deviceList"><p style="font-size:13px;color:var(--muted);">No hay aparatos personalizados. Búscalos arriba.</p></div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Añadir manualmente</p>
+    <div class="row2">
+      <div><label>Nombre</label><input type="text" id="manualDevLabel" placeholder="Ej: Estufa del estudio"></div>
+      <div><label>Consumo (kW)</label><input type="number" id="manualDevKw" placeholder="1.5" step="0.01" min="0.01" max="20"></div>
+    </div>
+    <button class="ghost" style="margin-top:8px;" onclick="saveManualDevice()">+ Añadir manualmente</button>
+  </div>
+</div>
 
 <!-- ══ AJUSTES ══ -->
 <div class="section" id="sec-settings">
@@ -1192,10 +1287,12 @@ function shareCalc(){
   } else {
     params.set('franjas', JSON.stringify(franjas.map(f=>({d:f.desde,h:f.hasta}))));
   }
+  // Máquinas AC activas
   const acAct=MACHINES.filter(m=>state[m.id].active).map(m=>m.id+'_'+state[m.id].mode);
   if(acAct.length) params.set('ac', acAct.join(','));
-  const exAct=EXTRAS.filter(e=>extraState[e.id].active).map(e=>e.id+'_'+extraState[e.id].kw.toFixed(2));
-  if(exAct.length) params.set('ex', exAct.join(','));
+  // Aparatos extra activos
+  const exActShare=EXTRAS.filter(e=>extraState[e.id].active).map(e=>e.id+'_'+extraState[e.id].kw.toFixed(2));
+  if(exActShare.length) params.set('ex', exActShare.join(','));
 
   const url=window.location.origin+window.location.pathname+'?'+params.toString();
   navigator.clipboard.writeText(url).then(()=>{
@@ -1277,6 +1374,325 @@ function applyBudget(){
       : 'Presupuesto insuficiente para ninguna hora completa.';
   buildHours(); compute();
 }
+
+/* ── PANEL AHORA MISMO ── */
+let ahoraChartObj=null;
+async function loadAhora(){
+  const date=new Date().toISOString().slice(0,10);
+  const hora=new Date().getHours();
+  document.getElementById('ahoraHora').textContent=String(hora).padStart(2,'0')+':00';
+  try{
+    let pm=prices;
+    if(!Object.keys(pm).length || document.getElementById('datePicker').value!==date){
+      const r=await fetch(`/api/prices?date=${date}`);
+      const d=await r.json();
+      if(!r.ok) return;
+      pm={};Object.entries(d.hours).forEach(([h,p])=>pm[+h]=p);
+    }
+    const p=pm[hora];
+    const avg=Object.values(pm).reduce((a,b)=>a+b,0)/Object.keys(pm).length;
+    const cheapH=Object.entries(pm).sort((a,b)=>a[1]-b[1])[0];
+    const diff=p?((p-avg)/avg*100):0;
+
+    document.getElementById('ahoraPrecio').textContent=p?fmt(p*1000,2)+' €/MWh':'—';
+    document.getElementById('ahoraMinH').textContent=cheapH?String(cheapH[0]).padStart(2,'0')+'h':'—';
+    document.getElementById('ahoraMinP').textContent=cheapH?fmt(cheapH[1]*1000,2)+' €/MWh':'—';
+
+    const card=document.getElementById('ahoraCard');
+    if(p){
+      let badge,color;
+      if(diff<=-15){badge='MUY BARATO';color='var(--green)';}
+      else if(diff<=-5){badge='BARATO';color='var(--green)';}
+      else if(diff<=5){badge='NORMAL';color='var(--muted)';}
+      else if(diff<=15){badge='ALGO CARO';color='var(--amber)';}
+      else{badge='CARO';color='var(--red)';}
+      document.getElementById('ahoraDiff').textContent=(diff>0?'+':'')+fmt(diff,1)+'%';
+      document.getElementById('ahoraDiff').style.color=color;
+      document.getElementById('ahoraDiffSub').textContent=badge+' vs media del día';
+      card.style.borderColor=color;
+    }
+
+    // Coste de encender cada máquina 1h ahora
+    const allMachines=[
+      ...MACHINES.map(m=>({label:m.label, kw:state[m.id].mode==='frio'?m.kw_frio:m.kw_calor})),
+      ...EXTRAS.filter(e=>extraState[e.id].active).map(e=>({label:e.label,kw:extraState[e.id].kw})),
+      ...customDevices.map(d=>({label:d.label,kw:d.kw}))
+    ];
+    const mc=document.getElementById('ahoraMachines');
+    mc.innerHTML='';
+    const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+    const is2otd=tarifa==='2otd';
+    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+    allMachines.forEach(m=>{
+      if(!p) return;
+      let cost=m.kw*p*(1-bono/100);
+      if(is2otd) cost=cost*(1+0.0511269632)*(1+0.21);
+      const div=document.createElement('div');div.className='ahora-machine';
+      const diffM=p?((p-avg)/avg*100):0;
+      const badge=diffM<=-5?'<span class="badge-barato">barato</span>':diffM>=15?'<span class="badge-caro">caro</span>':'<span class="badge-normal">normal</span>';
+      div.innerHTML=`<span>${m.label}</span><span style="color:var(--muted);font-size:12px;">${fmt(m.kw,2)} kW</span>${badge}<span style="font-weight:600;color:var(--amber);">${fmt(cost,4)} €</span>`;
+      mc.appendChild(div);
+    });
+    document.getElementById('ahoraMachinesCard').style.display=allMachines.length?'block':'none';
+
+    // Gráfica con hora actual marcada
+    const labels=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
+    const data=labels.map((_,i)=>pm[i]!==undefined?+(pm[i]*1000).toFixed(2):null);
+    const colors=labels.map((_,i)=>i===hora?'#EF9F27':pm[i]&&pm[i]<=cheapH[1]*1.05?'#1D9E75':'#378ADD');
+    if(ahoraChartObj) ahoraChartObj.destroy();
+    ahoraChartObj=new Chart(document.getElementById('ahoraChart'),{
+      type:'bar',data:{labels,datasets:[{label:'€/MWh',data,backgroundColor:colors,borderRadius:3,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,2)} €/MWh${c.dataIndex===hora?' ← ahora':''}`}}},
+        scales:{x:{ticks:{color:'#8b92a5',font:{size:10},maxRotation:0}},y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>v+'€'}}}}
+    });
+  }catch(e){console.error('loadAhora:',e);}
+}
+
+/* ── HISTÓRICO 30 DÍAS ── */
+let historicoChartObj=null;
+async function loadHistorico(){
+  document.getElementById('historicoStatus').textContent='Cargando 30 días de precios...';
+  try{
+    const r=await fetch('/api/prices/history');
+    const d=await r.json();
+    if(d.error){document.getElementById('historicoStatus').textContent='Error: '+d.error;return;}
+    const entries=Object.entries(d).sort((a,b)=>a[0].localeCompare(b[0]));
+    if(!entries.length){document.getElementById('historicoStatus').textContent='Sin datos';return;}
+    document.getElementById('historicoStatus').textContent='';
+    const avgs=entries.map(([,v])=>v.avg);
+    const globalAvg=avgs.reduce((a,b)=>a+b,0)/avgs.length;
+    const minEntry=entries.reduce((a,b)=>b[1].avg<a[1].avg?b:a);
+    const maxEntry=entries.reduce((a,b)=>b[1].avg>a[1].avg?b:a);
+    const today=new Date().toISOString().slice(0,10);
+    const todayData=d[today];
+
+    document.getElementById('histAvg').textContent=fmt(globalAvg*1000,2)+' €/MWh';
+    document.getElementById('histMin').textContent=fmt(minEntry[1].avg*1000,2)+' €/MWh';
+    document.getElementById('histMinDate').textContent=minEntry[0];
+    document.getElementById('histMax').textContent=fmt(maxEntry[1].avg*1000,2)+' €/MWh';
+    document.getElementById('histMaxDate').textContent=maxEntry[0];
+    if(todayData){
+      const diff=(todayData.avg-globalAvg)/globalAvg*100;
+      document.getElementById('histTodayDiff').textContent=(diff>0?'+':'')+fmt(diff,1)+'%';
+      document.getElementById('histTodayDiff').style.color=diff<=-10?'var(--green)':diff>=10?'var(--red)':'var(--muted)';
+    }
+
+    const labels=entries.map(([d])=>d.slice(5));
+    const dataAvg=entries.map(([,v])=>+(v.avg*1000).toFixed(2));
+    const dataMin=entries.map(([,v])=>+(v.min*1000).toFixed(2));
+    const dataMax=entries.map(([,v])=>+(v.max*1000).toFixed(2));
+    const barColors=entries.map(([date,v])=>date===today?'#EF9F27':v.avg<=globalAvg*0.9?'#1D9E75':v.avg>=globalAvg*1.1?'#E24B4A':'#378ADD');
+
+    if(historicoChartObj) historicoChartObj.destroy();
+    historicoChartObj=new Chart(document.getElementById('historicoChart'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Precio medio',data:dataAvg,backgroundColor:barColors,borderRadius:2,yAxisID:'y'},
+        {label:'Mín-Máx',data:dataMax,type:'line',borderColor:'rgba(139,146,165,.3)',backgroundColor:'transparent',borderWidth:1,pointRadius:0,yAxisID:'y'},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,2)} €/MWh`}}},
+        scales:{
+          x:{ticks:{color:'#8b92a5',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:10}},
+          y:{ticks:{color:'#8b92a5',font:{size:10},callback:v=>v+'€'}}
+        }}
+    });
+  }catch(e){document.getElementById('historicoStatus').textContent='Error: '+e.message;}
+}
+
+/* ── iCAL EXPORT ── */
+function exportICal(){
+  const date=document.getElementById('datePicker').value;
+  const hrs=[...selHrs].sort((a,b)=>a-b);
+  if(!hrs.length&&!franjas.length){alert('Selecciona horas primero.');return;}
+  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>m.label)
+    .concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>e.label))
+    .concat(customDevices.filter(d=>d.active).map(d=>d.label))
+    .join(', ')||'Aparatos';
+  let events=[];
+  if(activeTab==='botones'){
+    // Agrupar horas consecutivas en bloques
+    let blocks=[],start=null,prev=null;
+    hrs.forEach(h=>{
+      if(prev===null||h!==prev+1){if(start!==null)blocks.push({s:start,e:prev+1});start=h;}
+      prev=h;
+    });
+    if(start!==null) blocks.push({s:start,e:prev+1});
+    events=blocks.map(b=>({
+      start:`${date}T${String(b.s).padStart(2,'0')}0000`,
+      end:`${date}T${String(b.e%24).padStart(2,'0')}0000`,
+      summary:`⚡ ${aparatos}`,
+      desc:`Precio estimado: ${fmt(Object.values(prices).filter((_,i)=>i>=b.s&&i<b.e).reduce((a,v)=>a+v,0)/(b.e-b.s)*1000,2)} €/MWh medio`
+    }));
+  } else {
+    events=franjas.map(f=>({
+      start:`${date}T${f.desde.replace(':','')}00`,
+      end:`${date}T${f.hasta.replace(':','')}00`,
+      summary:`⚡ ${aparatos}`,
+      desc:`Franja: ${f.desde}–${f.hasta}`
+    }));
+  }
+  const uid=()=>Math.random().toString(36).slice(2)+Date.now();
+  const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  let ical=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//AC Cost Web//ES
+CALSCALE:GREGORIAN
+`;
+  events.forEach(ev=>{
+    ical+=`BEGIN:VEVENT
+UID:${uid()}@ac-cost
+DTSTAMP:${ts}
+DTSTART:${ev.start}
+DTEND:${ev.end}
+SUMMARY:${ev.summary}
+DESCRIPTION:${ev.desc}
+END:VEVENT
+`;
+  });
+  ical+=`END:VCALENDAR
+`;
+  const blob=new Blob([ical],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`ac-cost-${date}.ics`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+/* ── APARATOS PERSONALIZADOS ── */
+let customDevices = {{ custom_devices | tojson }};
+let devSearchResult = null;
+
+function renderDeviceList(){
+  const el=document.getElementById('deviceList');
+  if(!customDevices.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">No hay aparatos personalizados.</p>';return;}
+  el.innerHTML='';
+  customDevices.forEach(d=>{
+    const row=document.createElement('div');row.className='device-row';
+    row.innerHTML=`<span class="device-name">${d.label}</span>
+      <span class="device-kw">${fmt(d.kw,2)} kW</span>
+      <span style="font-size:11px;color:var(--muted);">min ${fmt(d.kw_min||d.kw,2)} · max ${fmt(d.kw_max||d.kw,2)}</span>
+      <button class="btn-rm" onclick="removeDevice('${d.id}')">×</button>`;
+    el.appendChild(row);
+  });
+  // Reconstruir extras con aparatos custom
+  rebuildExtrasWithCustom();
+}
+
+function rebuildExtrasWithCustom(){
+  // Los custom devices se añaden al extraState dinámicamente
+  customDevices.forEach(d=>{
+    if(!extraState['custom_'+d.id]){
+      extraState['custom_'+d.id]={active:false,kw:d.kw};
+    }
+  });
+  buildExtras();
+}
+
+// Sobreescribir buildExtras para incluir custom devices
+const _origBuildExtras=buildExtras;
+function buildExtras(){
+  const el=document.getElementById('extraList'); el.innerHTML='';
+  const allExtras=[...EXTRAS,...customDevices.map(d=>({id:'custom_'+d.id,label:'🔌 '+d.label,min:d.kw_min||0.01,max:d.kw_max||d.kw*2,step:0.01,def:d.kw,custom:true,customId:d.id}))];
+  allExtras.forEach(e=>{
+    if(!extraState[e.id]) extraState[e.id]={active:false,kw:e.def};
+    const st=extraState[e.id];
+    const r=document.createElement('div'); r.className='extra-row';
+    r.innerHTML=`<label class="toggle"><input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)"><span class="slider"></span></label>
+      <span class="extra-label" style="opacity:${st.active?1:.5}">${e.label}</span>
+      <input type="range" class="xslider" id="sl_${e.id}" min="${e.min}" max="${e.max}" step="${e.step}" value="${st.kw}" ${st.active?'':'disabled'} oninput="updateExtra('${e.id}',this.value)">
+      <span class="extra-val" id="val_${e.id}" style="opacity:${st.active?1:.4}">${fmt(st.kw,2)} kW</span>`;
+    el.appendChild(r);
+  });
+}
+
+async function searchDevice(){
+  const q=document.getElementById('deviceSearch').value.trim();
+  if(!q) return;
+  const btn=document.getElementById('deviceSearchBtnTxt');btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const r=await fetch(`/api/search-consumption?q=${encodeURIComponent(q)}`);
+    const d=await r.json();
+    if(!r.ok||d.error){alert(d.error||'Error buscando consumo');return;}
+    devSearchResult=d;
+    document.getElementById('deviceResultLabel').textContent=d.label||q;
+    document.getElementById('devKwMin').value=(d.kw_min||0.01).toFixed(2);
+    document.getElementById('devKwTipico').value=(d.kw_tipico||0.1).toFixed(2);
+    document.getElementById('devKwMax').value=(d.kw_max||0.5).toFixed(2);
+    document.getElementById('deviceNota').textContent=d.nota||'';
+    document.getElementById('devCustomLabel').value=d.label||q;
+    document.getElementById('deviceSearchResult').style.display='block';
+  }catch(e){alert('Error: '+e.message);}
+  finally{btn.textContent='Buscar';}
+}
+
+async function saveDevice(){
+  const label=document.getElementById('devCustomLabel').value.trim();
+  const kw=parseFloat(document.getElementById('devKwTipico').value);
+  const kw_min=parseFloat(document.getElementById('devKwMin').value);
+  const kw_max=parseFloat(document.getElementById('devKwMax').value);
+  if(!label||!kw){alert('Rellena el nombre y el consumo.');return;}
+  const device={
+    id:'dev_'+Date.now(),label,kw,kw_min:kw_min||kw,kw_max:kw_max||kw,
+    nota:devSearchResult?.nota||''
+  };
+  const r=await fetch('/api/custom-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(device)});
+  customDevices=await r.json();
+  document.getElementById('deviceSearchResult').style.display='none';
+  document.getElementById('deviceSearch').value='';
+  renderDeviceList();
+  showBanner('🔌 Aparato añadido');
+}
+
+async function saveManualDevice(){
+  const label=document.getElementById('manualDevLabel').value.trim();
+  const kw=parseFloat(document.getElementById('manualDevKw').value);
+  if(!label||!kw){alert('Rellena el nombre y el consumo.');return;}
+  const device={id:'dev_'+Date.now(),label,kw,kw_min:kw*0.5,kw_max:kw*1.5,nota:'Añadido manualmente'};
+  const r=await fetch('/api/custom-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(device)});
+  customDevices=await r.json();
+  document.getElementById('manualDevLabel').value='';
+  document.getElementById('manualDevKw').value='';
+  renderDeviceList();
+  showBanner('🔌 Aparato añadido');
+}
+
+async function removeDevice(id){
+  const r=await fetch(`/api/custom-devices/${id}`,{method:'DELETE'});
+  customDevices=await r.json();
+  delete extraState['custom_'+id];
+  renderDeviceList();
+}
+
+// showSection: añadir carga automática para secciones nuevas
+const _origShowSection=showSection;
+function showSection(id,btn){
+  _origShowSection(id,btn);
+  if(id==='ahora') loadAhora();
+  if(id==='historico') loadHistorico();
+  if(id==='devices') renderDeviceList();
+}
+
+// Init: cargar custom devices
+renderDeviceList();
+
+// Añadir botón iCal junto al PDF
+const pdfBtn=document.querySelector('button.ghost[onclick="exportPDF()"]');
+if(pdfBtn){
+  const icalBtn=document.createElement('button');
+  icalBtn.className='ghost';
+  icalBtn.title='Exportar a calendario';
+  icalBtn.textContent='📅 iCal';
+  icalBtn.onclick=exportICal;
+  pdfBtn.parentNode.insertBefore(icalBtn,pdfBtn.nextSibling);
+}
+
+// Actualizar panel ahora cada 5 minutos si está visible
+setInterval(()=>{
+  if(document.getElementById('sec-ahora')?.classList.contains('active')) loadAhora();
+},300000);
 
 function showBanner(msg){
   const b=document.getElementById('saveBanner');
