@@ -250,6 +250,8 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   <button class="nav-tab" onclick="showSection('ahora',this)">⚡ Ahora</button>
   <button class="nav-tab" onclick="showSection('historico',this)">📈 Histórico</button>
   <button class="nav-tab" onclick="showSection('devices',this)">🔌 Aparatos</button>
+  <button class="nav-tab" onclick="showSection('planner',this)">📅 Semana</button>
+  <button class="nav-tab" onclick="showSection('alerts',this)">🔔 Alertas</button>
   <button class="nav-tab" onclick="showSection('settings',this)">⚙ Ajustes</button>
 </div>
 
@@ -262,6 +264,8 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       <button class="ghost" onclick="exportPDF()" title="Exportar PDF">⬇ PDF</button>
       <button class="ghost" onclick="saveToHistory()" title="Guardar en historial">💾</button>
       <button class="ghost" onclick="shareCalc()" title="Compartir cálculo">🔗</button>
+      <button class="ghost" onclick="exportHistoryCSV()" title="Exportar historial CSV">📊 CSV</button>
+      <button class="ghost" onclick="addToGoogleCalendar()" title="Añadir a Google Calendar">📆 GCal</button>
     </div>
   </div>
   <div id="priceAlert" style="display:none;padding:8px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);font-size:12px;margin-bottom:1.25rem;"></div>
@@ -563,6 +567,72 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
+<!-- ══ PLANIFICADOR SEMANAL ══ -->
+<div class="section" id="sec-planner">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">📅 Plan semanal de uso</p>
+      <div style="display:flex;gap:8px;">
+        <button class="ghost" onclick="savePlan()">💾 Guardar plan</button>
+        <button class="primary" onclick="generateWeekCalendar()"><span id="planBtnTxt">Generar iCal semana</span></button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Define para cada día de la semana qué aparatos usas y en qué franja horaria. Se usa para la estimación mensual y para generar eventos de calendario.</p>
+    <div id="weekPlanGrid"></div>
+  </div>
+  <div class="card" id="planResultCard" style="display:none;">
+    <p class="card-title">Estimación coste semanal</p>
+    <div class="metrics">
+      <div class="metric hl-amber"><p class="metric-label">Coste semana</p><p class="metric-value" id="planWeekCost">—</p><p class="metric-sub">sin bono</p></div>
+      <div class="metric hl"><p class="metric-label">Con bono social</p><p class="metric-value" id="planWeekBono">—</p><p class="metric-sub" id="planWeekBonoSub">—</p></div>
+      <div class="metric"><p class="metric-label">kWh semana</p><p class="metric-value" id="planWeekKwh">—</p><p class="metric-sub">estimado</p></div>
+      <div class="metric"><p class="metric-label">Coste/mes est.</p><p class="metric-value" id="planMonthEst">—</p><p class="metric-sub">× 4,3 semanas</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALERTAS ══ -->
+<div class="section" id="sec-alerts">
+  <div class="card">
+    <p class="card-title">🔔 Nueva alerta de precio</p>
+    <div class="row3" style="margin-bottom:1rem;">
+      <div>
+        <label>Tipo</label>
+        <select id="alertTipo">
+          <option value="bajo">Precio baja de...</option>
+          <option value="alto">Precio sube de...</option>
+        </select>
+      </div>
+      <div>
+        <label>Umbral (€/MWh)</label>
+        <input type="number" id="alertUmbral" placeholder="ej: 100" step="1" min="0">
+      </div>
+      <div>
+        <label>Nombre</label>
+        <input type="text" id="alertNombre" placeholder="ej: Hora barata lavadora">
+      </div>
+    </div>
+    <button class="primary" onclick="saveAlert()">+ Añadir alerta</button>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+      <p class="card-title" style="margin:0;">Mis alertas</p>
+      <button class="ghost" style="font-size:11px;" onclick="checkAlerts()">↻ Comprobar ahora</button>
+    </div>
+    <div id="alertStatus" style="display:none;padding:10px 12px;border-radius:var(--rs);margin-bottom:.875rem;font-size:13px;"></div>
+    <div id="alertList"><p style="font-size:13px;color:var(--muted);">No hay alertas configuradas.</p></div>
+  </div>
+  <div class="card">
+    <p class="card-title">ℹ️ Cómo funcionan las alertas</p>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+      Las alertas se comprueban <strong style="color:var(--text);">cada vez que abres la app</strong> y cuando pulsas "Comprobar ahora". 
+      Cada alerta se dispara una sola vez por día para no saturarte.<br><br>
+      Los precios de ESIOS se expresan en <strong style="color:var(--text);">€/MWh</strong>. 
+      Referencia: precio bajo &lt;100 · normal 100-180 · caro &gt;180 €/MWh.
+    </p>
+  </div>
+</div>
+
 <!-- ══ AJUSTES ══ -->
 <div class="section" id="sec-settings">
   <div class="card">
@@ -662,6 +732,8 @@ function showSection(id, btn){
   if(id==='ahora') loadAhora();
   if(id==='historico') loadHistorico();
   if(id==='devices') renderDeviceList();
+  if(id==='planner') initPlanner();
+  if(id==='alerts'){loadAlerts();checkAlerts();}
   if(id==='compare'){
     const d=document.getElementById('datePicker').value;
     const dYest=new Date(d); dYest.setDate(dYest.getDate()-1);
@@ -1945,6 +2017,263 @@ setInterval(()=>{
   if(document.getElementById('sec-ahora')?.classList.contains('active')) loadAhora();
 },300000);
 
+
+/* ══ PLANIFICADOR SEMANAL ════════════════════════════════════════════════ */
+const DAYS_FULL = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+let weekPlan = {}; // {0: {desde:'08:00', hasta:'14:00', active:true}, ...}
+
+async function initPlanner(){
+  try{
+    const r = await fetch('/api/weekly-plan');
+    weekPlan = await r.json();
+  }catch(e){ weekPlan={}; }
+  buildWeekPlanGrid();
+}
+
+function buildWeekPlanGrid(){
+  const el = document.getElementById('weekPlanGrid');
+  el.innerHTML='';
+  DAYS_FULL.forEach((day,i)=>{
+    const p = weekPlan[i] || {desde:'08:00',hasta:'14:00',active:false};
+    if(!weekPlan[i]) weekPlan[i]=p;
+    const row = document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:100px auto 1fr 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);';
+    row.innerHTML=`
+      <label class="toggle" style="justify-self:start;">
+        <input type="checkbox" ${p.active?'checked':''} onchange="weekPlan[${i}].active=this.checked;calcPlanCost();">
+        <span class="slider"></span>
+      </label>
+      <span style="font-size:13px;min-width:80px;">${day}</span>
+      <div><label style="font-size:11px;">Desde</label>
+        <input type="time" value="${p.desde}" style="padding:4px 8px;font-size:13px;"
+          onchange="weekPlan[${i}].desde=this.value;calcPlanCost();"></div>
+      <div><label style="font-size:11px;">Hasta</label>
+        <input type="time" value="${p.hasta}" style="padding:4px 8px;font-size:13px;"
+          onchange="weekPlan[${i}].hasta=this.value;calcPlanCost();"></div>
+      <span id="plan_cost_${i}" style="font-size:12px;color:var(--amber);min-width:60px;text-align:right;">—</span>`;
+    el.appendChild(row);
+  });
+  calcPlanCost();
+}
+
+async function calcPlanCost(){
+  const avg = Object.keys(prices).length
+    ? Object.values(prices).reduce((a,b)=>a+b,0)/Object.keys(prices).length
+    : await fetch('/api/prices/weekly-avg').then(r=>r.json()).then(d=>{
+        const all=[]; Object.values(d).forEach(h=>Object.values(h).forEach(p=>all.push(p)));
+        return all.length?all.reduce((a,b)=>a+b,0)/all.length:0.15;
+      }).catch(()=>0.15);
+
+  const kw = kwTotal() || 1;
+  const bono = parseFloat(document.getElementById('bonoSel').value)||0;
+  let totalBruto=0, totalKwh=0;
+
+  DAYS_FULL.forEach((_,i)=>{
+    const p=weekPlan[i]||{};
+    if(!p.active){document.getElementById('plan_cost_'+i).textContent='—';return;}
+    const dur=Math.max(0,timeToH(p.hasta||'14:00')-timeToH(p.desde||'08:00'));
+    const cost=kw*dur*avg;
+    totalBruto+=cost; totalKwh+=kw*dur;
+    document.getElementById('plan_cost_'+i).textContent=fmt(cost,3)+' €';
+  });
+
+  if(totalBruto>0){
+    document.getElementById('planResultCard').style.display='block';
+    document.getElementById('planWeekCost').textContent=fmt(totalBruto,2)+' €';
+    document.getElementById('planWeekBono').textContent=fmt(totalBruto*(1-bono/100),2)+' €';
+    document.getElementById('planWeekBonoSub').textContent=bono>0?bono+'% bono':'sin descuento';
+    document.getElementById('planWeekKwh').textContent=fmt(totalKwh,1)+' kWh';
+    document.getElementById('planMonthEst').textContent=fmt(totalBruto*4.33,2)+' €';
+  }
+}
+
+async function savePlan(){
+  await fetch('/api/weekly-plan',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(weekPlan)});
+  showBanner('📅 Plan semanal guardado');
+}
+
+function generateWeekCalendar(){
+  const btn=document.getElementById('planBtnTxt');btn.innerHTML=spin('');
+  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>m.label).join(', ')||'Aparatos';
+  const uid=()=>Math.random().toString(36).slice(2)+Date.now();
+  const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+
+  // Generar para las próximas 4 semanas
+  let ical=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//AC Cost Web//ES
+CALSCALE:GREGORIAN
+X-WR-CALNAME:Plan Consumo Eléctrico
+`;
+  const now=new Date();
+  for(let w=0;w<4;w++){
+    DAYS_FULL.forEach((_,dow)=>{
+      const p=weekPlan[dow];
+      if(!p||!p.active) return;
+      // Encontrar la fecha del próximo día de la semana
+      const d=new Date(now);
+      const diff=(dow+1-d.getDay()+7)%7 + w*7; // +1 porque JS: 0=Dom, nosotros: 0=Lun
+      d.setDate(d.getDate()+diff);
+      const dateStr=d.toISOString().slice(0,10).replace(/-/g,'');
+      const startT=dateStr+'T'+(p.desde||'08:00').replace(':','')+'00';
+      const endT=dateStr+'T'+(p.hasta||'14:00').replace(':','')+'00';
+      ical+=`BEGIN:VEVENT
+UID:${uid()}@ac-cost
+DTSTAMP:${ts}
+DTSTART:${startT}
+DTEND:${endT}
+SUMMARY:⚡ ${aparatos}
+DESCRIPTION:Plan semanal AC - ${DAYS_FULL[dow]}
+END:VEVENT
+`;
+    });
+  }
+  ical+='END:VCALENDAR
+';
+  const blob=new Blob([ical],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='plan-semanal-ac.ics'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  btn.textContent='Generar iCal semana';
+}
+
+/* ══ ALERTAS ═════════════════════════════════════════════════════════════ */
+let alertsList = [];
+
+async function loadAlerts(){
+  const r=await fetch('/api/alerts');
+  alertsList=await r.json();
+  renderAlerts();
+}
+
+function renderAlerts(){
+  const el=document.getElementById('alertList');
+  if(!alertsList.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">No hay alertas configuradas.</p>';return;}
+  el.innerHTML='';
+  alertsList.forEach(a=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;';
+    const icono=a.tipo==='bajo'?'🔽':'🔼';
+    const label=a.tipo==='bajo'?'Avisa si baja de':'Avisa si sube de';
+    row.innerHTML=`<span style="font-size:16px;">${icono}</span>
+      <div style="flex:1;">
+        <p style="font-weight:500;">${a.nombre||'Sin nombre'}</p>
+        <p style="font-size:12px;color:var(--muted);">${label} ${a.umbral} €/MWh</p>
+      </div>
+      <span style="font-size:11px;color:${a.triggered_today?'var(--green)':'var(--muted)'};">${a.triggered_today?'✅ Disparada hoy':'Esperando'}</span>
+      <button class="btn-rm" onclick="deleteAlert('${a.id}')">×</button>`;
+    el.appendChild(row);
+  });
+}
+
+async function saveAlert(){
+  const tipo=document.getElementById('alertTipo').value;
+  const umbral=parseFloat(document.getElementById('alertUmbral').value);
+  const nombre=document.getElementById('alertNombre').value.trim();
+  if(!umbral){alert('Introduce un umbral en €/MWh.');return;}
+  const r=await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({tipo,umbral,nombre:nombre||`${tipo==='bajo'?'Precio bajo':'Precio alto'} ${umbral}€/MWh`})});
+  alertsList=await r.json();
+  document.getElementById('alertNombre').value='';
+  document.getElementById('alertUmbral').value='';
+  renderAlerts();
+  showBanner('🔔 Alerta añadida');
+}
+
+async function deleteAlert(id){
+  const r=await fetch(`/api/alerts/${id}`,{method:'DELETE'});
+  alertsList=await r.json();
+  renderAlerts();
+}
+
+async function checkAlerts(){
+  const r=await fetch('/api/alerts/check');
+  const d=await r.json();
+  const el=document.getElementById('alertStatus');
+  el.style.display='block';
+  if(d.triggered&&d.triggered.length){
+    el.style.background='rgba(29,158,117,.12)';
+    el.style.border='1px solid var(--green)';
+    el.style.color='var(--green)';
+    el.innerHTML=d.triggered.map(a=>`🔔 <strong>${a.nombre}</strong> — Precio actual: ${fmt(a.precio_actual*1000,2)} €/MWh`).join('<br>');
+  } else {
+    el.style.background='var(--bg3)';
+    el.style.border='1px solid var(--border)';
+    el.style.color='var(--muted)';
+    el.textContent=`Sin alertas disparadas · Precio actual: ${d.precio_actual?fmt(d.precio_actual*1000,2)+' €/MWh':'—'}`;
+  }
+  alertsList=await (await fetch('/api/alerts')).json();
+  renderAlerts();
+}
+
+/* ══ EXPORTAR CSV ════════════════════════════════════════════════════════ */
+async function exportHistoryCSV(){
+  const r=await fetch('/api/history');
+  const hist=await r.json();
+  if(!hist.length){alert('No hay historial que exportar.');return;}
+  const cols=['Fecha','Coste bruto (€)','Ahorro bono (€)','Coste final (€)','Bono (%)','kW','Horas','Guardado el'];
+  const rows=hist.map(h=>[
+    h.date||'',
+    (h.bruto||0).toFixed(4).replace('.',','),
+    ((h.bruto||0)*(h.bono||0)/100).toFixed(4).replace('.',','),
+    (h.final||0).toFixed(4).replace('.',','),
+    h.bono||0,
+    (h.kw||0).toFixed(2).replace('.',','),
+    h.hrs||'',
+    h.ts?new Date(h.ts).toLocaleString('es-ES'):''
+  ]);
+  const csv=[cols,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('
+');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`historial-luz-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+/* ══ GOOGLE CALENDAR ═════════════════════════════════════════════════════ */
+function addToGoogleCalendar(){
+  const date=document.getElementById('datePicker').value;
+  const hrs=[...selHrs].sort((a,b)=>a-b);
+  const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>m.label)
+    .concat(EXTRAS.filter(e=>extraState[e.id]?.active).map(e=>e.label))
+    .join(', ')||'Aparatos eléctricos';
+
+  if(!hrs.length&&!franjas.length){alert('Selecciona horas primero.');return;}
+
+  let startH, endH;
+  if(activeTab==='botones'&&hrs.length){
+    startH=hrs[0]; endH=hrs[hrs.length-1]+1;
+  } else if(franjas.length){
+    startH=Math.floor(timeToH(franjas[0].desde));
+    endH=Math.ceil(timeToH(franjas[franjas.length-1].hasta));
+  } else return;
+
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const kw=kwTotal();
+  const avg=avgPrice();
+  let bruto=0;
+  if(activeTab==='botones') hrs.forEach(h=>{bruto+=kw*(prices[h]??avg);});
+  else franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});
+  const final=bruto*(1-bono/100);
+
+  const pad=n=>String(n).padStart(2,'0');
+  const dateNoSlash=date.replace(/-/g,'');
+  const start=`${dateNoSlash}T${pad(startH)}0000`;
+  const end=`${dateNoSlash}T${pad(Math.min(endH,24))}0000`;
+  const details=`Aparatos: ${aparatos}%0ACoste estimado: ${fmt(final,3)} €${bono>0?` (con ${bono}% bono)`:''}%0APrecio medio: ${fmt(avg*1000,2)} €/MWh`;
+  const title=encodeURIComponent(`⚡ ${aparatos}`);
+  const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}`;
+  window.open(url,'_blank');
+}
+
+/* ══ WIDGET RESUMEN ══════════════════════════════════════════════════════ */
+// Enlace al widget añadido en el footer
+document.querySelector('footer').innerHTML += ' · <a href="/resumen" target="_blank" style="color:var(--muted);">📱 Widget móvil</a>';
+
+/* ══ showSection: nuevas secciones ══════════════════════════════════════ */
 /* ══ SKINS ══════════════════════════════════════════════════════════════ */
 function setSkin(skin){
   if(!SKINS.includes(skin)) skin='oscuro';
