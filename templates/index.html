@@ -2222,8 +2222,7 @@ async function exportHistoryCSV(){
     h.hrs||'',
     h.ts?new Date(h.ts).toLocaleString('es-ES'):''
   ]);
-  const csv=[cols,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('
-');
+  const csv=[cols,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
