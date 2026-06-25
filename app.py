@@ -32,7 +32,6 @@ MACHINES = [
 DEFAULT_SETTINGS = {
     "aemet_municipio":  "08200",
     "aemet_municipio_nombre": "Sant Boi de Llobregat",
-    "prometheus_url":   "http://observatorio-prometheus:9090",
     "bono_social_pct":  42.5,
 }
 
@@ -252,33 +251,6 @@ def temperature():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Prometheus ────────────────────────────────────────────────────────────────
-@app.route("/api/prometheus/monthly")
-def prometheus_monthly():
-    settings = load_settings()
-    prom_url = settings.get("prometheus_url", PROMETHEUS_URL)
-    try:
-        now = datetime.now(TZ)
-        r = requests.get(f"{prom_url}/api/v1/query",
-            params={"query": "sum_over_time(ac_total_cost_eur_hour[31d]) * (5/60)",
-                    "time": now.timestamp()}, timeout=10)
-        r.raise_for_status()
-        results = r.json().get("data", {}).get("result", [])
-        total = sum(float(res["value"][1]) for res in results) if results else 0.0
-        r2 = requests.get(f"{prom_url}/api/v1/query",
-            params={"query": "ac_cost_accumulated_today_eur"}, timeout=10)
-        r2.raise_for_status()
-        today_r = r2.json().get("data", {}).get("result", [])
-        today = float(today_r[0]["value"][1]) if today_r else 0.0
-        r3 = requests.get(f"{prom_url}/api/v1/query",
-            params={"query": "ac_pvpc_price_eur_kwh"}, timeout=10)
-        r3.raise_for_status()
-        price_r = r3.json().get("data", {}).get("result", [])
-        price = float(price_r[0]["value"][1]) if price_r else 0.0
-        return jsonify({"monthly_eur": round(total, 3), "today_eur": round(today, 3),
-                        "pvpc_now": round(price, 6), "month": now.strftime("%B %Y")})
-    except Exception as e:
-        return jsonify({"error": f"No se pudo conectar a Prometheus: {str(e)}"}), 500
 
 # ── Precios medios semanales (para estimación mensual) ────────────────────────
 @app.route("/api/prices/weekly-avg")
