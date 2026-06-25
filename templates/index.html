@@ -541,6 +541,9 @@ function showSection(id, btn){
   if(id==='history') loadHistory();
   if(id==='settings') loadSettingsUI();
   if(id==='optimal') document.getElementById('optDate').value=document.getElementById('datePicker').value;
+  if(id==='ahora') loadAhora();
+  if(id==='historico') loadHistorico();
+  if(id==='devices') renderDeviceList();
   if(id==='compare'){
     const d=document.getElementById('datePicker').value;
     const dYest=new Date(d); dYest.setDate(dYest.getDate()-1);
@@ -550,6 +553,8 @@ function showSection(id, btn){
 }
 
 /* ── INIT ── */
+let customDevices = {{ custom_devices | tojson }};
+let devSearchResult = null;
 const today=new Date().toISOString().slice(0,10);
 document.getElementById('datePicker').value=today;
 document.getElementById('optDate').value=today;
@@ -597,7 +602,13 @@ function setMode(id,v){state[id].mode=v;buildMachines();compute();}
 /* ── EXTRAS ── */
 function buildExtras(){
   const el=document.getElementById('extraList'); el.innerHTML='';
-  EXTRAS.forEach(e=>{
+  const customAsExtras=(customDevices||[]).map(d=>({
+    id:'custom_'+d.id, label:'🔌 '+d.label,
+    min:d.kw_min||0.01, max:Math.max(d.kw_max||d.kw*2, d.kw+0.1), step:0.01, def:d.kw
+  }));
+  const allExtras=[...EXTRAS, ...customAsExtras];
+  allExtras.forEach(e=>{
+    if(!extraState[e.id]) extraState[e.id]={active:false, kw:e.def};
     const st=extraState[e.id];
     const r=document.createElement('div'); r.className='extra-row';
     r.innerHTML=`<label class="toggle"><input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)"><span class="slider"></span></label>
@@ -1562,9 +1573,6 @@ END:VEVENT
 }
 
 /* ── APARATOS PERSONALIZADOS ── */
-let customDevices = {{ custom_devices | tojson }};
-let devSearchResult = null;
-
 function renderDeviceList(){
   const el=document.getElementById('deviceList');
   if(!customDevices.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">No hay aparatos personalizados.</p>';return;}
@@ -1589,23 +1597,6 @@ function rebuildExtrasWithCustom(){
     }
   });
   buildExtras();
-}
-
-// Sobreescribir buildExtras para incluir custom devices
-const _origBuildExtras=buildExtras;
-function buildExtras(){
-  const el=document.getElementById('extraList'); el.innerHTML='';
-  const allExtras=[...EXTRAS,...customDevices.map(d=>({id:'custom_'+d.id,label:'🔌 '+d.label,min:d.kw_min||0.01,max:d.kw_max||d.kw*2,step:0.01,def:d.kw,custom:true,customId:d.id}))];
-  allExtras.forEach(e=>{
-    if(!extraState[e.id]) extraState[e.id]={active:false,kw:e.def};
-    const st=extraState[e.id];
-    const r=document.createElement('div'); r.className='extra-row';
-    r.innerHTML=`<label class="toggle"><input type="checkbox" ${st.active?'checked':''} onchange="toggleExtra('${e.id}',this.checked)"><span class="slider"></span></label>
-      <span class="extra-label" style="opacity:${st.active?1:.5}">${e.label}</span>
-      <input type="range" class="xslider" id="sl_${e.id}" min="${e.min}" max="${e.max}" step="${e.step}" value="${st.kw}" ${st.active?'':'disabled'} oninput="updateExtra('${e.id}',this.value)">
-      <span class="extra-val" id="val_${e.id}" style="opacity:${st.active?1:.4}">${fmt(st.kw,2)} kW</span>`;
-    el.appendChild(r);
-  });
 }
 
 async function searchDevice(){
@@ -1664,15 +1655,6 @@ async function removeDevice(id){
   customDevices=await r.json();
   delete extraState['custom_'+id];
   renderDeviceList();
-}
-
-// showSection: añadir carga automática para secciones nuevas
-const _origShowSection=showSection;
-function showSection(id,btn){
-  _origShowSection(id,btn);
-  if(id==='ahora') loadAhora();
-  if(id==='historico') loadHistorico();
-  if(id==='devices') renderDeviceList();
 }
 
 // Init: cargar custom devices
