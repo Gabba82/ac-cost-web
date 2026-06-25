@@ -140,7 +140,6 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   <button class="nav-tab" onclick="showSection('optimal',this)">Hora óptima</button>
   <button class="nav-tab" onclick="showSection('monthly',this)">Estimación mensual</button>
   <button class="nav-tab" onclick="showSection('history',this)">Historial</button>
-  <button class="nav-tab" onclick="showSection('prometheus',this)">Acumulado real</button>
   <button class="nav-tab" onclick="showSection('settings',this)">⚙ Ajustes</button>
 </div>
 
@@ -152,8 +151,10 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       <button class="primary" id="loadBtn" onclick="loadPrices()"><span id="loadBtnText">Cargar precios</span></button>
       <button class="ghost" onclick="exportPDF()" title="Exportar PDF">⬇ PDF</button>
       <button class="ghost" onclick="saveToHistory()" title="Guardar en historial">💾</button>
+      <button class="ghost" onclick="shareCalc()" title="Compartir cálculo">🔗</button>
     </div>
   </div>
+  <div id="priceAlert" style="display:none;padding:8px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);font-size:12px;margin-bottom:1.25rem;"></div>
 
   <div class="card">
     <p class="card-title">Máquinas de aire acondicionado</p>
@@ -198,6 +199,7 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
         <button class="ghost" onclick="setHours('all')">Todas</button>
         <button class="ghost" onclick="setHours('none')">Ninguna</button>
         <button class="ghost" onclick="setHours('cheap')">3 más baratas</button>
+        <button class="ghost" onclick="toggleBudget()" id="btnBudget">💰 Por presupuesto</button>
       </div>
       <div class="legend" id="leyLlano">
         <span><span class="ldot" style="background:var(--green);"></span>Activa</span>
@@ -213,6 +215,17 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       <div class="hour-grid" id="hg1" style="margin-bottom:4px;"></div>
       <div class="hour-grid" id="hg2"></div>
     </div>
+    <div id="budgetPanel" style="display:none;margin-bottom:1rem;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted);">Presupuesto máximo:</span>
+        <input type="number" id="budgetInput" placeholder="ej: 0,50" min="0.01" max="99" step="0.01"
+          style="width:90px;padding:5px 8px;font-size:13px;" oninput="applyBudget()">
+        <span style="font-size:12px;color:var(--muted);">€ — selecciona las horas más baratas hasta ese importe</span>
+        <button class="ghost" style="font-size:11px;" onclick="applyBudget()">Aplicar</button>
+      </div>
+      <p id="budgetResult" style="font-size:12px;color:var(--amber);margin-top:6px;"></p>
+    </div>
+
     <div class="tp" id="tab-franjas">
       <div id="franjaList"></div>
       <button class="ghost" style="margin-top:10px;" onclick="addFranja()">+ Añadir franja</button>
@@ -344,24 +357,6 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
-<!-- ══ PROMETHEUS ══ -->
-<div class="section" id="sec-prometheus">
-  <div class="card">
-    <p class="card-title">Acumulado real (Prometheus)</p>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Conecta con tu instancia de Prometheus para ver el coste real acumulado del mes según el ac-cost-exporter.</p>
-    <button class="primary" onclick="loadPrometheus()"><span id="promBtnTxt">Cargar datos</span></button>
-    <p style="font-size:11px;color:var(--muted);margin-top:8px;">URL configurada en Ajustes: <span id="promUrlLabel" style="color:var(--amber);">—</span></p>
-  </div>
-  <div id="prometheusResult" style="display:none;" class="card">
-    <p class="card-title">Datos en tiempo real</p>
-    <div class="metrics">
-      <div class="metric hl-amber"><p class="metric-label">Acumulado mes</p><p class="metric-value" id="promMonthly">—</p><p class="metric-sub" id="promMonth">—</p></div>
-      <div class="metric hl"><p class="metric-label">Acumulado hoy</p><p class="metric-value" id="promToday">—</p><p class="metric-sub">según exporter</p></div>
-      <div class="metric"><p class="metric-label">Precio PVPC ahora</p><p class="metric-value" id="promPvpc">—</p><p class="metric-sub">€/kWh</p></div>
-      <div class="metric"><p class="metric-label">Con bono social</p><p class="metric-value" id="promWithBono">—</p><p class="metric-sub" id="promBonoPct">—</p></div>
-    </div>
-  </div>
-</div>
 
 <!-- ══ AJUSTES ══ -->
 <div class="section" id="sec-settings">
@@ -401,12 +396,6 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
     <p style="font-size:12px;color:var(--muted);margin-top:8px;">Se aplicará automáticamente al cargar la aplicación.</p>
   </div>
 
-  <div class="card">
-    <p class="card-title">Prometheus</p>
-    <label>URL de Prometheus</label>
-    <input type="text" id="settingsPromUrl" placeholder="http://observatorio-prometheus:9090">
-    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Nombre del contenedor Docker en la red interna.</p>
-  </div>
 
   <button class="primary" onclick="saveSettings()"><span id="settingsBtnTxt">Guardar ajustes</span></button>
 </div>
@@ -456,7 +445,6 @@ function showSection(id, btn){
   if(btn) btn.classList.add('active');
   if(id==='history') loadHistory();
   if(id==='settings') loadSettingsUI();
-  if(id==='prometheus') document.getElementById('promUrlLabel').textContent=settings.prometheus_url||'—';
   if(id==='optimal') document.getElementById('optDate').value=document.getElementById('datePicker').value;
   if(id==='compare'){
     const d=document.getElementById('datePicker').value;
@@ -479,8 +467,9 @@ const tarifaRadio=document.querySelector(`input[name="tarifa"][value="${defTarif
 if(tarifaRadio) tarifaRadio.checked=true;
 
 buildMachines(); buildExtras(); buildHours(); buildFranjas(); buildWeekPattern(); updateChart();
-document.querySelectorAll('input[name="tarifa"]').forEach(r=>r.addEventListener('change',compute));
-loadPrices();
+document.querySelectorAll('input[name="tarifa"]').forEach(r=>r.addEventListener('change',()=>{buildHours();compute();}));
+loadFromURL();
+if(!window.location.search) loadPrices();
 
 /* ── PESTAÑAS ── */
 function switchTab(t){
@@ -749,12 +738,30 @@ async function loadPrices(dateVal){
     const ts=document.getElementById('tempStatus');if(ts)ts.style.display='none';
     setStatus('ok',`${Object.keys(prices).length} horas · media ${fmt(d.avg*1000,2)} · mín ${fmt(d.min*1000,2)} (${fmtH(d.min_h)}) · máx ${fmt(d.max*1000,2)} (${fmtH(d.max_h)}) €/MWh`);
     document.getElementById('chartDate').textContent=date;
-    buildHours();compute();
+    buildHours();compute();updatePriceAlert();
     return d;
   }catch(e){setStatus('err','Error: '+e.message);return null;}
   finally{if(btn){btn.disabled=false;txt.textContent='Cargar precios';}}
 }
 function setStatus(t,m){document.getElementById('statusDot').className='dot dot-'+t;document.getElementById('statusText').textContent=m;}
+
+function updatePriceAlert(){
+  const now=new Date().getHours();
+  const pNow=prices[now];
+  const avg=avgPrice();
+  if(!pNow||!avg) return;
+  const el=document.getElementById('priceAlert');
+  if(!el) return;
+  const diff=((pNow-avg)/avg)*100;
+  let icon,color,msg;
+  if(diff<=-15){icon='🟢';color='var(--green)';msg=`Precio actual muy barato (${fmt(diff,1)}% bajo la media)`;}
+  else if(diff<=-5){icon='🟡';color='var(--amber)';msg=`Precio actual algo barato (${fmt(diff,1)}% bajo la media)`;}
+  else if(diff<=5){icon='⚪';color='var(--muted)';msg=`Precio actual cerca de la media (${fmt(diff,1)}%)`;}
+  else if(diff<=15){icon='🟠';color='var(--amber)';msg=`Precio actual algo caro (+${fmt(diff,1)}% sobre la media)`;}
+  else{icon='🔴';color='var(--red)';msg=`Precio actual muy caro (+${fmt(diff,1)}% sobre la media)`;}
+  el.innerHTML=`<span style="color:${color};">${icon} ${msg} · Ahora: ${fmt(pNow*1000,2)} €/MWh · Media día: ${fmt(avg*1000,2)} €/MWh</span>`;
+  el.style.display='block';
+}
 document.getElementById('datePicker').addEventListener('change',()=>loadPrices());
 
 /* ── COMPARAR ── */
@@ -827,14 +834,23 @@ async function runOptimal(){
     }
     results.sort((a,b)=>a.coste-b.coste);
     const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+    const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+    const is2otd=tarifa==='2otd';
+    const IMP_ELEC=0.0511269632, IVA=0.21;
+    const applyTarifa=c=>{
+      const conBono=c*(1-bono/100);
+      if(!is2otd) return conBono;
+      return conBono*(1+IMP_ELEC)*(1+IVA);
+    };
     const rows=document.getElementById('optimalRows'); rows.innerHTML='';
-    document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h`;
+    document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h · ${is2otd?'2.0TD c/imp.':'PVPC'}`;
     results.slice(0,top).forEach((r,i)=>{
       const tI=`${String(Math.floor(r.start)).padStart(2,'0')}:${String(Math.round((r.start%1)*60)).padStart(2,'0')}`;
       const tF=`${String(Math.floor(r.end)).padStart(2,'0')}:${String(Math.round((r.end%1)*60)).padStart(2,'0')}`;
+      const costeFinal=applyTarifa(r.coste);
       const div=document.createElement('div');div.className='optimal-row'+(i===0?' best':'');
       div.innerHTML=`<span>${['🥇','🥈','🥉','4º','5º','6º','7º','8º','9º','10º'][i]} ${tI} → ${tF}</span>
-        <span>${fmt(r.coste,3)} € · con bono: ${fmt(r.coste*(1-bono/100),3)} €</span>
+        <span>${fmt(costeFinal,3)} €${is2otd?' (c/imp.)':bono>0?' (c/bono)':''}</span>
         <span style="color:var(--muted);font-size:12px;">${fmt(r.kwh,2)} kWh</span>`;
       rows.appendChild(div);
     });
@@ -942,31 +958,12 @@ async function clearHistory(){
   loadHistory();
 }
 
-/* ── PROMETHEUS ── */
-async function loadPrometheus(){
-  const btn=document.getElementById('promBtnTxt'); btn.innerHTML=spin('');
-  try{
-    const r=await fetch('/api/prometheus/monthly');
-    const d=await r.json();
-    if(d.error){alert(d.error);return;}
-    const bono=parseFloat(document.getElementById('bonoSel').value)||0;
-    document.getElementById('promMonthly').textContent=fmt(d.monthly_eur,3)+' €';
-    document.getElementById('promToday').textContent=fmt(d.today_eur,3)+' €';
-    document.getElementById('promPvpc').textContent=fmt(d.pvpc_now,4)+' €/kWh';
-    document.getElementById('promWithBono').textContent=fmt(d.monthly_eur*(1-bono/100),3)+' €';
-    document.getElementById('promBonoPct').textContent=bono>0?bono+'% bono social':'sin descuento';
-    document.getElementById('promMonth').textContent=d.month;
-    document.getElementById('prometheusResult').style.display='block';
-  }catch(e){alert('Error: '+e.message);}
-  finally{btn.textContent='Cargar datos';}
-}
 
 /* ── AJUSTES ── */
 function loadSettingsUI(){
   document.getElementById('munActual').textContent=settings.aemet_municipio_nombre||'—';
   document.getElementById('munCodigo').textContent=settings.aemet_municipio?`(código: ${settings.aemet_municipio})`:'';
   document.getElementById('settingsBonoSel').value=String(settings.bono_social_pct||42.5);
-  document.getElementById('settingsPromUrl').value=settings.prometheus_url||'';
   const defT=settings.tarifa_defecto||'pvpc';
   const r=document.querySelector(`input[name="settingsTarifa"][value="${defT}"]`);
   if(r) r.checked=true;
@@ -976,7 +973,6 @@ async function saveSettings(){
   const btn=document.getElementById('settingsBtnTxt'); btn.innerHTML=spin('');
   const data={
     bono_social_pct: parseFloat(document.getElementById('settingsBonoSel').value)||42.5,
-    prometheus_url:  document.getElementById('settingsPromUrl').value.trim(),
     aemet_municipio: settings.aemet_municipio,
     aemet_municipio_nombre: settings.aemet_municipio_nombre,
     tarifa_defecto: document.querySelector('input[name="settingsTarifa"]:checked')?.value||'pvpc',
@@ -1182,6 +1178,104 @@ ${parts.length?`
   const a=document.createElement('a');
   a.href=url; a.target='_blank'; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+/* ── COMPARTIR CÁLCULO ── */
+function shareCalc(){
+  const params=new URLSearchParams();
+  params.set('date', document.getElementById('datePicker').value);
+  params.set('bono', document.getElementById('bonoSel').value);
+  params.set('tarifa', document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc');
+  params.set('tab', activeTab);
+  if(activeTab==='botones'){
+    params.set('hrs', [...selHrs].sort((a,b)=>a-b).join(','));
+  } else {
+    params.set('franjas', JSON.stringify(franjas.map(f=>({d:f.desde,h:f.hasta}))));
+  }
+  const acAct=MACHINES.filter(m=>state[m.id].active).map(m=>m.id+'_'+state[m.id].mode);
+  if(acAct.length) params.set('ac', acAct.join(','));
+  const exAct=EXTRAS.filter(e=>extraState[e.id].active).map(e=>e.id+'_'+extraState[e.id].kw.toFixed(2));
+  if(exAct.length) params.set('ex', exAct.join(','));
+
+  const url=window.location.origin+window.location.pathname+'?'+params.toString();
+  navigator.clipboard.writeText(url).then(()=>{
+    showBanner('🔗 URL copiada al portapapeles');
+  }).catch(()=>{
+    prompt('Copia esta URL:', url);
+  });
+}
+
+function loadFromURL(){
+  const p=new URLSearchParams(window.location.search);
+  if(!p.has('date')) return;
+
+  // Fecha
+  const d=p.get('date');
+  if(d) document.getElementById('datePicker').value=d;
+
+  // Bono
+  const b=p.get('bono');
+  if(b) document.getElementById('bonoSel').value=b;
+
+  // Tarifa
+  const t=p.get('tarifa');
+  if(t){const r=document.querySelector(`input[name="tarifa"][value="${t}"]`);if(r)r.checked=true;}
+
+  // Máquinas AC
+  const ac=p.get('ac');
+  if(ac) ac.split(',').forEach(s=>{const[id,mode]=s.split('_');if(state[id]){state[id].active=true;if(mode)state[id].mode=mode;}});
+
+  // Extras
+  const ex=p.get('ex');
+  if(ex) ex.split(',').forEach(s=>{const[id,kw]=s.split('_');if(extraState[id]){extraState[id].active=true;if(kw)extraState[id].kw=parseFloat(kw);}});
+
+  // Tab y horas
+  const tab=p.get('tab')||'botones';
+  if(tab==='franjas'){
+    const fr=p.get('franjas');
+    if(fr) try{JSON.parse(fr).forEach(f=>addFranja(f.d,f.h));}catch(e){}
+    switchTab('franjas');
+    document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['botones','franjas'][i]==='franjas'));
+  } else {
+    const hrs=p.get('hrs');
+    if(hrs) hrs.split(',').filter(Boolean).forEach(h=>selHrs.add(parseInt(h)));
+  }
+
+  buildMachines(); buildExtras(); buildHours();
+  loadPrices(d);
+  history.replaceState({},'',window.location.pathname); // limpiar URL tras cargar
+}
+
+/* ── PRESUPUESTO ── */
+let budgetVisible=false;
+function toggleBudget(){
+  budgetVisible=!budgetVisible;
+  document.getElementById('budgetPanel').style.display=budgetVisible?'block':'none';
+  document.getElementById('btnBudget').style.color=budgetVisible?'var(--amber)':'';
+}
+function applyBudget(){
+  const budget=parseFloat(document.getElementById('budgetInput').value.replace(',','.'));
+  if(!budget||budget<=0) return;
+  const kw=kwTotal();
+  if(!kw){document.getElementById('budgetResult').textContent='Activa al menos un aparato.';return;}
+  const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
+  const bono=parseFloat(document.getElementById('bonoSel').value)||0;
+  const IMP_ELEC=0.0511269632, IVA=0.21;
+  const costH=p=>{ let c=kw*p*(1-bono/100); if(is2otd) c=c*(1+IMP_ELEC)*(1+IVA); return c; };
+  const sorted=Object.entries(prices).map(([h,p])=>({h:+h,p,c:costH(p)})).sort((a,b)=>a.c-b.c);
+  selHrs.clear();
+  let acum=0;
+  for(const {h,c} of sorted){
+    if(acum+c>budget) break;
+    selHrs.add(h); acum+=c;
+  }
+  const label=is2otd?'c/imp.':'energía';
+  document.getElementById('budgetResult').textContent=
+    selHrs.size>0
+      ? `${selHrs.size} horas seleccionadas · coste estimado: ${acum.toFixed(3).replace('.',',')} € (${label})`
+      : 'Presupuesto insuficiente para ninguna hora completa.';
+  buildHours(); compute();
 }
 
 function showBanner(msg){
