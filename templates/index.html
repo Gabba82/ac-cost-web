@@ -631,6 +631,7 @@ const EXTRAS_ORIG = EXTRAS.map(e=>({...e})); // copia para restaurar
 const extraState = {};
 EXTRAS.forEach(e => extraState[e.id] = {active:false, kw:e.def});
 
+const SKINS = ['oscuro','claro','grafana','terminal','nord'];
 let prices={}, temps={}, selHrs=new Set(), franjas=[], activeTab='botones';
 let chartObj=null, compareChartObj=null, showTemp=false, franjaId=0;
 let settings = {...INIT_SETTINGS};
@@ -1947,8 +1948,6 @@ setInterval(()=>{
 },300000);
 
 /* ══ SKINS ══════════════════════════════════════════════════════════════ */
-const SKINS = ['oscuro','claro','grafana','terminal','nord'];
-
 function setSkin(skin){
   if(!SKINS.includes(skin)) skin='oscuro';
   // Quitar todas las clases de skin del body
