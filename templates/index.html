@@ -119,9 +119,18 @@ button.danger:hover{background:var(--red);color:white;}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gdim);color:var(--green);margin-left:8px;}
 .save-banner{display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:var(--green);color:white;padding:10px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
-.device-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.device-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .device-row:last-child{border-bottom:none;}
-.device-name{flex:1;}.device-kw{color:var(--amber);font-weight:600;min-width:56px;text-align:right;}
+.device-row.disabled{opacity:.45;}
+.device-name{flex:1;min-width:0;}
+.device-kw{color:var(--amber);font-weight:600;min-width:56px;text-align:right;}
+.dev-tag{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg3);color:var(--muted);flex-shrink:0;}
+.dev-tag.predefined{background:rgba(55,138,221,.12);color:var(--blue);}
+.dev-tag.custom{background:rgba(29,158,117,.12);color:var(--green);}
+.editable-field{background:transparent;border:none;outline:none;color:inherit;font-size:inherit;font-family:inherit;padding:0;width:100%;cursor:text;}
+.editable-field:hover{text-decoration:underline dotted var(--muted);}
+.editable-field:focus{background:var(--bg3);border-radius:4px;padding:2px 6px;text-decoration:none;cursor:text;}
+.editable-kw{width:52px;text-align:right;color:var(--amber);font-weight:600;}
 .ahora-machine{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .ahora-machine:last-child{border-bottom:none;}
 .badge-caro{background:rgba(226,75,74,.15);color:var(--red);border-radius:var(--rs);padding:2px 8px;font-size:11px;font-weight:600;}
@@ -411,45 +420,56 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
   </div>
 </div>
 
-<!-- ══ APARATOS PERSONALIZADOS ══ -->
+<!-- ══ APARATOS ══ -->
 <div class="section" id="sec-devices">
+
+  <!-- Buscador IA -->
   <div class="card">
-    <p class="card-title">Buscar consumo con IA</p>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Escribe el nombre del aparato y la IA buscará su consumo típico en kW.</p>
+    <p class="card-title">🔍 Buscar consumo con IA</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Escribe el nombre del aparato y la IA buscará su consumo típico.</p>
     <div style="display:flex;gap:8px;">
-      <input type="text" id="deviceSearch" placeholder="Ej: ventilador de pie, aspiradora Roomba, PlayStation 5..." style="flex:1;">
+      <input type="text" id="deviceSearch" placeholder="Ej: PlayStation 5, aspiradora Dyson, termo eléctrico..." style="flex:1;"
+        onkeydown="if(event.key==='Enter') searchDevice()">
       <button class="primary" onclick="searchDevice()"><span id="deviceSearchBtnTxt">Buscar</span></button>
     </div>
     <div id="deviceSearchResult" style="display:none;margin-top:1rem;background:var(--bg3);border-radius:var(--rs);padding:1rem;">
       <p class="card-title" id="deviceResultLabel" style="margin-bottom:.5rem;">—</p>
       <div class="row3" style="margin-bottom:.75rem;">
         <div><label>kW mínimo</label><input type="number" id="devKwMin" step="0.01" min="0.01"></div>
-        <div><label>kW típico (recomendado)</label><input type="number" id="devKwTipico" step="0.01" min="0.01" style="border-color:var(--green);"></div>
+        <div><label>kW típico</label><input type="number" id="devKwTipico" step="0.01" min="0.01" style="border-color:var(--green);"></div>
         <div><label>kW máximo</label><input type="number" id="devKwMax" step="0.01" min="0.01"></div>
       </div>
       <p id="deviceNota" style="font-size:12px;color:var(--muted);margin-bottom:.75rem;"></p>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="devCustomLabel" placeholder="Nombre personalizado..." style="flex:1;">
-        <button class="primary" onclick="saveDevice()">+ Añadir a mis aparatos</button>
+        <button class="primary" onclick="saveDevice()">+ Añadir</button>
       </div>
     </div>
   </div>
 
+  <!-- Lista unificada editable -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
-      <p class="card-title" style="margin:0;">Mis aparatos personalizados</p>
-      <p style="font-size:12px;color:var(--muted);">Se añaden a la sección "Otros aparatos" de la calculadora</p>
+      <p class="card-title" style="margin:0;">📋 Todos los aparatos</p>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:11px;color:var(--muted);">Desactiva los que no uses</span>
+        <button class="ghost" style="font-size:11px;" onclick="resetDeviceList()">↺ Restaurar predefinidos</button>
+      </div>
     </div>
-    <div id="deviceList"><p style="font-size:13px;color:var(--muted);">No hay aparatos personalizados. Búscalos arriba.</p></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.875rem;">
+      Activa/desactiva aparatos con el toggle · Edita nombre o kW haciendo clic sobre ellos · Los desactivados no aparecen en la calculadora
+    </p>
+    <div id="deviceList"></div>
   </div>
 
+  <!-- Añadir manual -->
   <div class="card">
-    <p class="card-title">Añadir manualmente</p>
+    <p class="card-title">➕ Añadir manualmente</p>
     <div class="row2">
       <div><label>Nombre</label><input type="text" id="manualDevLabel" placeholder="Ej: Estufa del estudio"></div>
       <div><label>Consumo (kW)</label><input type="number" id="manualDevKw" placeholder="1.5" step="0.01" min="0.01" max="20"></div>
     </div>
-    <button class="ghost" style="margin-top:8px;" onclick="saveManualDevice()">+ Añadir manualmente</button>
+    <button class="ghost" style="margin-top:8px;" onclick="saveManualDevice()">+ Añadir</button>
   </div>
 </div>
 
@@ -517,6 +537,7 @@ const EXTRAS = [
   {id:'vent_grande',  label:'Ventilador techo grande',  min:0.01, max:0.15, step:0.01, def:0.09},
   {id:'personalizado',label:'Aparato personalizado',    min:0.1,  max:10.0, step:0.1,  def:1.0 },
 ];
+const EXTRAS_ORIG = EXTRAS.map(e=>({...e})); // copia para restaurar
 const extraState = {};
 EXTRAS.forEach(e => extraState[e.id] = {active:false, kw:e.def});
 
@@ -555,6 +576,7 @@ function showSection(id, btn){
 /* ── INIT ── */
 let customDevices = {{ custom_devices | tojson }};
 let devSearchResult = null;
+applyLocalOverrides();  // aplicar overrides de labels/kw antes del render
 const today=new Date().toISOString().slice(0,10);
 document.getElementById('datePicker').value=today;
 document.getElementById('optDate').value=today;
@@ -606,7 +628,7 @@ function buildExtras(){
     id:'custom_'+d.id, label:'🔌 '+d.label,
     min:d.kw_min||0.01, max:Math.max(d.kw_max||d.kw*2, d.kw+0.1), step:0.01, def:d.kw
   }));
-  const allExtras=[...EXTRAS, ...customAsExtras];
+  const allExtras=[...EXTRAS.filter(e=>!disabledExtras.has(e.id)), ...customAsExtras];
   allExtras.forEach(e=>{
     if(!extraState[e.id]) extraState[e.id]={active:false, kw:e.def};
     const st=extraState[e.id];
@@ -1573,30 +1595,151 @@ END:VEVENT
 }
 
 /* ── APARATOS PERSONALIZADOS ── */
-function renderDeviceList(){
-  const el=document.getElementById('deviceList');
-  if(!customDevices.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);">No hay aparatos personalizados.</p>';return;}
-  el.innerHTML='';
-  customDevices.forEach(d=>{
-    const row=document.createElement('div');row.className='device-row';
-    row.innerHTML=`<span class="device-name">${d.label}</span>
-      <span class="device-kw">${fmt(d.kw,2)} kW</span>
-      <span style="font-size:11px;color:var(--muted);">min ${fmt(d.kw_min||d.kw,2)} · max ${fmt(d.kw_max||d.kw,2)}</span>
-      <button class="btn-rm" onclick="removeDevice('${d.id}')">×</button>`;
-    el.appendChild(row);
-  });
-  // Reconstruir extras con aparatos custom
-  rebuildExtrasWithCustom();
+// Lista maestra unificada: predefinidos + custom
+// enabled: si aparece en la calculadora
+// predefinidos están en EXTRAS, custom en customDevices
+// El estado enabled de predefinidos se guarda en disabledExtras (set de ids)
+let disabledExtras = new Set(JSON.parse(localStorage.getItem('disabledExtras')||'[]'));
+
+function saveDisabledExtras(){
+  localStorage.setItem('disabledExtras', JSON.stringify([...disabledExtras]));
 }
 
-function rebuildExtrasWithCustom(){
-  // Los custom devices se añaden al extraState dinámicamente
-  customDevices.forEach(d=>{
-    if(!extraState['custom_'+d.id]){
-      extraState['custom_'+d.id]={active:false,kw:d.kw};
-    }
+function renderDeviceList(){
+  const el=document.getElementById('deviceList');
+  el.innerHTML='';
+
+  // Predefinidos
+  EXTRAS.forEach(e=>{
+    const enabled=!disabledExtras.has(e.id);
+    const row=document.createElement('div');
+    row.className='device-row'+(enabled?'':' disabled');
+    row.innerHTML=`
+      <label class="toggle" style="flex-shrink:0;">
+        <input type="checkbox" ${enabled?'checked':''} onchange="togglePredefined('${e.id}',this.checked)">
+        <span class="slider"></span>
+      </label>
+      <span class="dev-tag predefined">predefinido</span>
+      <span class="device-name">
+        <input class="editable-field" value="${e.label}" readonly
+          onfocus="this.removeAttribute('readonly')"
+          onblur="updatePredefinedLabel('${e.id}',this.value);this.setAttribute('readonly','')"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </span>
+      <input class="editable-field editable-kw" type="number" value="${fmt(extraState[e.id]?.kw||e.def,2).replace(',','.')}" step="0.01" min="0.01"
+        onchange="updatePredefinedKw('${e.id}',this.value)"
+        title="Editar kW">
+      <span style="font-size:11px;color:var(--muted);flex-shrink:0;">kW</span>`;
+    el.appendChild(row);
   });
+
+  // Separador si hay custom
+  if(customDevices.length){
+    const sep=document.createElement('p');
+    sep.style.cssText='font-size:11px;color:var(--muted);padding:12px 0 6px;border-top:1px solid var(--border);margin-top:4px;';
+    sep.textContent='Aparatos personalizados';
+    el.appendChild(sep);
+  }
+
+  // Custom
+  customDevices.forEach(d=>{
+    const row=document.createElement('div');row.className='device-row';
+    row.innerHTML=`
+      <label class="toggle" style="flex-shrink:0;">
+        <input type="checkbox" checked onchange="toggleCustomDevice('${d.id}',this.checked)">
+        <span class="slider"></span>
+      </label>
+      <span class="dev-tag custom">custom</span>
+      <span class="device-name">
+        <input class="editable-field" value="${d.label}" readonly
+          onfocus="this.removeAttribute('readonly')"
+          onblur="updateCustomLabel('${d.id}',this.value);this.setAttribute('readonly','')"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </span>
+      <input class="editable-field editable-kw" type="number" value="${d.kw.toFixed(2)}" step="0.01" min="0.01"
+        onchange="updateCustomKw('${d.id}',this.value)"
+        title="Editar kW">
+      <span style="font-size:11px;color:var(--muted);flex-shrink:0;">kW</span>
+      <button class="btn-rm" onclick="removeDevice('${d.id}')" title="Eliminar">×</button>`;
+    el.appendChild(row);
+  });
+
   buildExtras();
+}
+
+function togglePredefined(id, enabled){
+  if(enabled) disabledExtras.delete(id);
+  else disabledExtras.add(id);
+  saveDisabledExtras();
+  renderDeviceList();
+}
+
+function updatePredefinedLabel(id, val){
+  // Guardamos override de label en localStorage
+  const overrides=JSON.parse(localStorage.getItem('extraLabelOverrides')||'[]');
+  const idx=overrides.findIndex(o=>o.id===id);
+  if(idx>=0) overrides[idx].label=val; else overrides.push({id,label:val});
+  localStorage.setItem('extraLabelOverrides',JSON.stringify(overrides));
+  // Actualizar en EXTRAS
+  const e=EXTRAS.find(e=>e.id===id); if(e) e.label=val;
+  buildExtras();
+}
+
+function updatePredefinedKw(id, val){
+  const kw=parseFloat(val);
+  if(!kw||kw<=0) return;
+  if(!extraState[id]) extraState[id]={active:false,kw};
+  else extraState[id].kw=kw;
+  // Guardar override
+  const overrides=JSON.parse(localStorage.getItem('extraKwOverrides')||'[]');
+  const idx=overrides.findIndex(o=>o.id===id);
+  if(idx>=0) overrides[idx].kw=kw; else overrides.push({id,kw});
+  localStorage.setItem('extraKwOverrides',JSON.stringify(overrides));
+  buildExtras(); compute();
+}
+
+function toggleCustomDevice(id, enabled){
+  const key='custom_'+id;
+  if(!extraState[key]) extraState[key]={active:false,kw:customDevices.find(d=>d.id===id)?.kw||1};
+  extraState[key].active=enabled;
+  buildExtras(); compute();
+}
+
+async function updateCustomLabel(id, val){
+  const d=customDevices.find(d=>d.id===id); if(!d||d.label===val) return;
+  d.label=val;
+  await fetch('/api/custom-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  buildExtras();
+}
+
+async function updateCustomKw(id, val){
+  const kw=parseFloat(val); if(!kw) return;
+  const d=customDevices.find(d=>d.id===id); if(!d) return;
+  d.kw=kw;
+  const key='custom_'+id;
+  if(extraState[key]) extraState[key].kw=kw;
+  await fetch('/api/custom-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  buildExtras(); compute();
+}
+
+function resetDeviceList(){
+  if(!confirm('¿Restaurar todos los aparatos predefinidos y sus valores originales?')) return;
+  disabledExtras.clear();
+  localStorage.removeItem('disabledExtras');
+  localStorage.removeItem('extraLabelOverrides');
+  localStorage.removeItem('extraKwOverrides');
+  // Restaurar EXTRAS a valores originales
+  EXTRAS.forEach(e=>{ extraState[e.id]={active:false,kw:e.def}; e.label=EXTRAS_ORIG.find(o=>o.id===e.id)?.label||e.label; });
+  renderDeviceList();
+  showBanner('↺ Aparatos predefinidos restaurados');
+}
+
+// Cargar overrides de localStorage al inicio
+function applyLocalOverrides(){
+  const labels=JSON.parse(localStorage.getItem('extraLabelOverrides')||'[]');
+  const kws=JSON.parse(localStorage.getItem('extraKwOverrides')||'[]');
+  labels.forEach(o=>{ const e=EXTRAS.find(e=>e.id===o.id); if(e) e.label=o.label; });
+  kws.forEach(o=>{ if(!extraState[o.id]) extraState[o.id]={active:false,kw:o.kw}; else extraState[o.id].kw=o.kw; });
 }
 
 async function searchDevice(){
