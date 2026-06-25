@@ -4,7 +4,7 @@ AC Cost Web — servidor Flask
 Puerto: 5656
 """
 
-import os, json, time, requests
+import os, json, re, time, requests
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, jsonify, render_template, request
@@ -217,6 +217,9 @@ Si no reconoces el aparato, devuelve kw_tipico=null y nota explicando que no tie
         )
         r.raise_for_status()
         text = r.json()["content"][0]["text"].strip()
+        # Limpiar bloques markdown ```json ... ``` si Claude los incluye
+        text = re.sub(r"^```[a-z]*\n?", "", text)
+        text = re.sub(r"```$", "", text).strip()
         result = json.loads(text)
         cache_set(f"consumption:{query.lower()}", result, ttl=86400)
         return jsonify(result)
