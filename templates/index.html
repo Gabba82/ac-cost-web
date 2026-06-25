@@ -2129,8 +2129,7 @@ END:VEVENT
 `;
     });
   }
-  ical+='END:VCALENDAR
-';
+  ical+='END:VCALENDAR\r\n';
   const blob=new Blob([ical],{type:'text/calendar;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='plan-semanal-ac.ics'; a.click();
