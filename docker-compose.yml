@@ -9,7 +9,10 @@ services:
       - .env
     networks:
       - observatorio_default
+      - bridge_net
 
 networks:
   observatorio_default:
     external: true
+  bridge_net:
+    driver: bridge
