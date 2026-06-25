@@ -633,7 +633,7 @@ EXTRAS.forEach(e => extraState[e.id] = {active:false, kw:e.def});
 
 const SKINS = ['oscuro','claro','grafana','terminal','nord'];
 let prices={}, temps={}, selHrs=new Set(), franjas=[], activeTab='botones';
-let chartObj=null, compareChartObj=null, showTemp=false, franjaId=0;
+let chartObj=null, compareChartObj=null, ahoraChartObj=null, historicoChartObj=null, showTemp=false, franjaId=0;
 let settings = {...INIT_SETTINGS};
 let munSearchTimer = null;
 
@@ -1513,7 +1513,6 @@ function applyBudget(){
 }
 
 /* ── PANEL AHORA MISMO ── */
-let ahoraChartObj=null;
 async function loadAhora(){
   const date=new Date().toISOString().slice(0,10);
   const hora=new Date().getHours();
@@ -1587,7 +1586,6 @@ async function loadAhora(){
 }
 
 /* ── HISTÓRICO 30 DÍAS ── */
-let historicoChartObj=null;
 async function loadHistorico(){
   document.getElementById('historicoStatus').textContent='Cargando 30 días de precios...';
   try{
