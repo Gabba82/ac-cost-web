@@ -1329,6 +1329,15 @@ async function uploadConsumptionFile(btn){
     btn.innerHTML=origTxt;
   }
 }
+// Constantes oficiales 2.0TD (según factura Energía XXI, vigentes en 2026)
+const POT_ANUAL_P1LLANO=27.704413;   // €/kW·año — peajes+cargos potencia punta-llano
+const POT_ANUAL_VALLE=0.725423;      // €/kW·año — peajes+cargos potencia valle
+const POT_ANUAL_MARGEN=3.113;        // €/kW·año — margen de comercialización fijo
+const ALQUILER_CONTADOR_DIA=0.026630;// €/día
+const FINANC_BONO_DIA=0.019121;      // €/día
+const UPLOAD_IMP_ELEC=0.051126963, UPLOAD_IVA=0.21;
+const UPLOAD_POTENCIA_KW=5.75;       // potencia contratada P1+P3 (ajusta si la tuya es distinta)
+
 function renderUploadResult(){
   const data=lastUploadData;
   const resEl=document.getElementById('uploadResult');
@@ -1337,51 +1346,54 @@ function renderUploadResult(){
   const bono=parseFloat(document.getElementById('uploadBonoSel').value)||0;
   const tarifa=document.querySelector('input[name="uploadTarifa"]:checked')?.value||'pvpc';
   const is2otd=tarifa==='2otd';
-  const IMP_ELEC=0.0511269632, IVA=0.21;
-  const TERM_POT_MES=5.75*(2.375388+0.080738); // 5,75 kW P1+P2, igual que la calculadora principal
 
-  const bruto=data.total_cost;
-  const brutoConBono=bruto*(1-bono/100);
-  const ahorroBono=bruto-brutoConBono;
-
+  const energia=data.total_cost; // ya incluye peajes de energía (indicador PVPC de ESIOS)
   const dayMs=24*60*60*1000;
   const dias=Math.max(1,Math.round((new Date(data.period_end)-new Date(data.period_start))/dayMs)+1);
-  const termPot=is2otd?TERM_POT_MES*(dias/30):0;
 
-  let impElec=0,iva=0,final;
+  let potencia=0,varios=0,descuentoBono=0,impElec=0,alquiler=0,iva=0,final;
   if(is2otd){
-    impElec=brutoConBono*IMP_ELEC;
-    const subtotal=brutoConBono+impElec;
-    iva=subtotal*IVA;
-    final=subtotal+iva+termPot;
+    const potAnualRate=POT_ANUAL_P1LLANO+POT_ANUAL_VALLE+POT_ANUAL_MARGEN;
+    potencia=UPLOAD_POTENCIA_KW*potAnualRate*(dias/365);
+    varios=dias*FINANC_BONO_DIA;
+    const base=potencia+energia+varios;
+    descuentoBono=base*(bono/100);
+    const baseImpElec=base-descuentoBono;
+    impElec=baseImpElec*UPLOAD_IMP_ELEC;
+    alquiler=dias*ALQUILER_CONTADOR_DIA;
+    const subtotal=baseImpElec+impElec+alquiler;
+    iva=subtotal*UPLOAD_IVA;
+    final=subtotal+iva;
   } else {
-    final=brutoConBono;
+    descuentoBono=energia*(bono/100);
+    final=energia-descuentoBono;
   }
 
-  const rowCost=c=>{
-    let v=c*(1-bono/100);
-    if(is2otd) v=v*(1+IMP_ELEC)*(1+IVA);
-    return v;
-  };
   const rowsHtml=data.dates.map(d=>
     `<tr>
       <td>${d.date}</td>
       <td>${fmt(d.kwh,2)} kWh</td>
       <td>${fmt(d.avg_price*1000,2)} €/MWh</td>
-      <td class="cost-cell">${fmt(rowCost(d.cost),2)} €</td>
+      <td class="cost-cell">${fmt(d.cost,2)} €</td>
     </tr>`).join('');
 
-  const extraMetrics=is2otd?`
-    <div class="upload-metrics" style="margin-bottom:.75rem;">
-      <div class="metric"><p class="metric-label">Imp. eléctrico (5,11%)</p><p class="metric-value">${fmt(impElec,2)} €</p><p class="metric-sub">sobre energía</p></div>
-      <div class="metric"><p class="metric-label">IVA (21%)</p><p class="metric-value">${fmt(iva,2)} €</p><p class="metric-sub">sobre subtotal</p></div>
-      <div class="metric"><p class="metric-label">Término potencia</p><p class="metric-value">${fmt(termPot,2)} €</p><p class="metric-sub">${dias} días · 5,75 kW P1+P2</p></div>
-      <div class="metric"><p class="metric-label">Periodo</p><p class="metric-value">${dias} d</p><p class="metric-sub">prorrateo potencia</p></div>
+  const breakdown=is2otd?`
+    <div class="upload-scroll" style="margin-bottom:.875rem;">
+      <div style="padding:2px 12px;">
+        <div class="optimal-row"><span>Potencia contratada (${UPLOAD_POTENCIA_KW} kW · peajes+margen, ${dias} días)</span><span>${fmt(potencia,2)} €</span></div>
+        <div class="optimal-row"><span>Energía consumida (PVPC, peajes incluidos)</span><span>${fmt(energia,2)} €</span></div>
+        <div class="optimal-row"><span>Financiación bono social (${dias} días)</span><span>${fmt(varios,2)} €</span></div>
+        <div class="optimal-row" style="color:var(--green);"><span>Descuento bono social (${bono||0}%)</span><span>${bono?'-'+fmt(descuentoBono,2)+' €':'—'}</span></div>
+        <div class="optimal-row"><span>Impuesto eléctrico (5,11%)</span><span>${fmt(impElec,2)} €</span></div>
+        <div class="optimal-row"><span>Alquiler del contador (${dias} días)</span><span>${fmt(alquiler,2)} €</span></div>
+        <div class="optimal-row"><span>IVA (21%)</span><span>${fmt(iva,2)} €</span></div>
+        <div class="optimal-row best"><span>Total factura estimada</span><span>${fmt(final,2)} €</span></div>
+      </div>
     </div>`:'';
 
   const nota=is2otd
-    ? `Coste calculado con el precio horario PVPC real de cada día, más impuesto eléctrico (5,11%), IVA (21%) y término de potencia fijo prorrateado (5,75 kW P1+P2, ${dias} días)${bono?', con el descuento de bono social aplicado sobre la energía':''}. Es una aproximación a tu factura real: puede variar si tu potencia contratada es distinta.`
-    : `Coste calculado solo con el precio horario PVPC de la energía (sin impuestos ni término de potencia)${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para aproximarlo a tu factura real.`;
+    ? `Desglose calculado replicando la fórmula oficial de la factura 2.0TD (potencia con margen de comercialización, bono social sobre potencia+energía+varios, impuesto eléctrico, alquiler de contador e IVA). Asume ${UPLOAD_POTENCIA_KW} kW de potencia contratada — ajústalo si la tuya es distinta. Los peajes de la potencia son los vigentes en 2026 y pueden cambiar cada año.`
+    : `Coste calculado solo con el precio horario PVPC de la energía (peajes de energía incluidos, sin potencia ni impuestos)${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para ver la estimación completa de factura.`;
 
   resEl.innerHTML=`
     <div class="upload-head">
@@ -1389,16 +1401,16 @@ function renderUploadResult(){
       <span class="upload-period">${data.period_start} → ${data.period_end} · ${data.rows} registros</span>
     </div>
     <div class="upload-metrics">
-      <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value">${fmt(bruto,2)} €</p><p class="metric-sub">término energía</p></div>
-      <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(ahorroBono,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
-      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${is2otd?'con impuestos y potencia':(bono?'con bono social':'sin bono')}</p></div>
+      <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value">${fmt(energia,2)} €</p><p class="metric-sub">término energía</p></div>
+      <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(descuentoBono,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
+      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${is2otd?'factura estimada':(bono?'con bono social':'sin bono')}</p></div>
       <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value">${fmt(data.total_kwh,2)}</p><p class="metric-sub">${fmt(data.avg_price*1000,2)} €/MWh medio</p></div>
     </div>
-    ${extraMetrics}
+    ${breakdown}
     <p class="upload-note">${nota}</p>
     <div class="upload-scroll">
       <table class="upload-table">
-        <thead><tr><th>Fecha</th><th>Consumo</th><th>Precio medio</th><th>Coste${bono||is2otd?' (ajustado)':''}</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Consumo</th><th>Precio medio</th><th>Coste energía</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
