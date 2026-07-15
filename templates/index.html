@@ -257,12 +257,19 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
 <div class="section active" id="sec-calc">
   <div class="row2">
     <div><label>Fecha</label><input type="date" id="datePicker"></div>
-    <div style="display:flex;align-items:flex-end;gap:8px;">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
       <button class="primary" id="loadBtn" onclick="loadPrices()"><span id="loadBtnText">Cargar precios</span></button>
       <button class="ghost" onclick="exportPDF()" title="Exportar PDF">⬇ PDF</button>
       <button class="ghost" onclick="saveToHistory()" title="Guardar en historial">💾</button>
       <button class="ghost" onclick="shareCalc()" title="Compartir cálculo">🔗</button>
     </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
+        <input type="file" id="consumptionFile" accept=".xls,.xlsx,.csv,.txt" style="color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:5px;">
+      </label>
+      <button class="ghost" onclick="uploadConsumptionFile(this)" title="Subir fichero de consumo">📄 Calcular desde fichero</button>
+    </div>
+    <div id="uploadResult" style="display:none;padding:10px 14px;border-radius:var(--rs);background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.12);font-size:12px;margin-top:10px;color:var(--text);"></div>
   </div>
   <div id="priceAlert" style="display:none;padding:8px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);font-size:12px;margin-bottom:1.25rem;"></div>
 
@@ -1252,6 +1259,56 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#munSearch')&&!e.target.closest('#munResults'))
     document.getElementById('munResults').style.display='none';
 });
+
+/* ── FICHERO DE CONSUMO ── */
+async function uploadConsumptionFile(btn){
+  const inp=document.getElementById('consumptionFile');
+  const resEl=document.getElementById('uploadResult');
+  resEl.style.display='block';
+  if(!inp.files||!inp.files.length){
+    resEl.style.color='var(--red)';
+    resEl.innerHTML='Selecciona antes un fichero de consumo (XLS, XLSX o CSV).';
+    return;
+  }
+  const origTxt=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML=spin('Calculando...');
+  resEl.style.color='var(--muted)';
+  resEl.innerHTML='Procesando fichero...';
+  try{
+    const fd=new FormData();
+    fd.append('file',inp.files[0]);
+    const r=await fetch('/api/consumption/upload',{method:'POST',body:fd});
+    const data=await r.json();
+    if(!r.ok||data.error){
+      resEl.style.color='var(--red)';
+      resEl.innerHTML='❌ '+(data.error||'Error al procesar el fichero.');
+      return;
+    }
+    const rowsHtml=data.dates.map(d=>
+      `<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+        <span style="color:var(--muted);">${d.date}</span>
+        <span>${fmt(d.kwh,2)} kWh</span>
+        <span style="color:var(--muted);">${fmt(d.avg_price*1000,2)} €/MWh</span>
+        <span style="font-weight:600;color:var(--amber);">${fmt(d.cost,2)} €</span>
+      </div>`).join('');
+    resEl.style.color='var(--text)';
+    resEl.innerHTML=`
+      <p style="margin-bottom:6px;"><strong>${data.file_name}</strong> · ${data.period_start} → ${data.period_end} · ${data.rows} registros</p>
+      <p style="margin-bottom:8px;">Total consumido: <strong style="color:var(--green);">${fmt(data.total_kwh,2)} kWh</strong> ·
+        Coste estimado (PVPC): <strong style="color:var(--amber);font-size:15px;">${fmt(data.total_cost,2)} €</strong> ·
+        Precio medio: ${fmt(data.avg_price*1000,2)} €/MWh</p>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Coste calculado con el precio horario PVPC real de cada día (sin impuestos ni bono social).</p>
+      <div style="max-height:280px;overflow-y:auto;">${rowsHtml}</div>
+    `;
+  }catch(e){
+    resEl.style.color='var(--red)';
+    resEl.innerHTML='❌ Error de red: '+e.message;
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=origTxt;
+  }
+}
 
 /* ── PDF ── */
 function exportPDF(){

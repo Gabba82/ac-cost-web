@@ -4,10 +4,21 @@ AC Cost Web — servidor Flask
 Puerto: 5656
 """
 
-import os, json, re, time, requests
-from datetime import datetime, date, timedelta
+import io, csv, os, json, re, time, requests
+from collections import defaultdict
+from datetime import datetime, date, time as dtime, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, jsonify, render_template, request
+
+try:
+    import xlrd
+except ImportError:
+    xlrd = None
+
+try:
+    from openpyxl import load_workbook
+except ImportError:
+    load_workbook = None
 
 app = Flask(__name__)
 
@@ -227,6 +238,355 @@ Si no reconoces el aparato, devuelve kw_tipico=null y nota explicando que no tie
         return jsonify({"error": "La IA no devolvió JSON válido", "raw": text[:200]}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ── Utilidades para parsear ficheros de consumo ─────────────────────────────────
+def normalize_header(value):
+    if value is None:
+        return ""
+    s = str(value).strip().lower()
+    s = s.replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('ü', 'u').replace('ñ', 'n')
+    s = re.sub(r'[^a-z0-9]+', '_', s)
+    return s.strip('_')
+
+def parse_number(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).strip().replace(',', '.')
+    s = re.sub(r'[^0-9\.-]+', '', s)
+    if not s or s in ['.', '-', '-.']:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+def parse_date_value(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    s = str(value).strip()
+    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%d.%m.%Y', '%Y.%m.%d']:
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(s).date()
+    except Exception:
+        return None
+
+def parse_time_value(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, dtime):
+        return value
+    if isinstance(value, datetime):
+        return value.time()
+    s = str(value).strip()
+    for fmt in ['%H:%M', '%H.%M', '%H%M', '%H']:
+        try:
+            return datetime.strptime(s, fmt).time()
+        except ValueError:
+            continue
+    if '-' in s:
+        parts = [p.strip() for p in s.split('-') if p.strip()]
+        if parts:
+            return parse_time_value(parts[0])
+    return None
+
+def read_spreadsheet(file_storage):
+    filename = file_storage.filename or ''
+    ext = os.path.splitext(filename)[1].lower()
+    content = file_storage.read()
+    file_storage.seek(0)
+    if ext in ('.csv', '.txt'):
+        text = content.decode('utf-8', errors='replace')
+        try:
+            dialect = csv.Sniffer().sniff(text[:2048], delimiters=';,')
+        except Exception:
+            dialect = csv.excel
+        rows = [row for row in csv.reader(text.splitlines(), dialect) if any(cell.strip() for cell in row)]
+        return rows
+
+    if ext == '.xls' and xlrd:
+        book = xlrd.open_workbook(file_contents=content)
+        sheet = book.sheet_by_index(0)
+        rows = []
+        for r in range(sheet.nrows):
+            row = []
+            for c in range(sheet.ncols):
+                ctype = sheet.cell_type(r, c)
+                value = sheet.cell_value(r, c)
+                if ctype == xlrd.XL_CELL_DATE:
+                    try:
+                        value = datetime(*xlrd.xldate_as_tuple(value, book.datemode))
+                    except Exception:
+                        pass
+                row.append(value)
+            rows.append(row)
+        return rows
+
+    if ext in ('.xlsx', '.xlsm', '.xlsb') and load_workbook:
+        wb = load_workbook(filename=io.BytesIO(content), data_only=True, read_only=True)
+        sheet = wb.active
+        rows = [[cell.value for cell in row] for row in sheet.iter_rows(values_only=True)]
+        return rows
+
+    if load_workbook:
+        try:
+            wb = load_workbook(filename=io.BytesIO(content), data_only=True, read_only=True)
+            sheet = wb.active
+            rows = [[cell.value for cell in row] for row in sheet.iter_rows(values_only=True)]
+            return rows
+        except Exception:
+            pass
+    if xlrd:
+        try:
+            book = xlrd.open_workbook(file_contents=content)
+            sheet = book.sheet_by_index(0)
+            rows = []
+            for r in range(sheet.nrows):
+                row = []
+                for c in range(sheet.ncols):
+                    ctype = sheet.cell_type(r, c)
+                    value = sheet.cell_value(r, c)
+                    if ctype == xlrd.XL_CELL_DATE:
+                        try:
+                            value = datetime(*xlrd.xldate_as_tuple(value, book.datemode))
+                        except Exception:
+                            pass
+                    row.append(value)
+                rows.append(row)
+            return rows
+        except Exception:
+            pass
+    raise ValueError('Formato de fichero no soportado. Usa XLS, XLSX o CSV.')
+
+def parse_consumption_rows(rows):
+    if not rows or len(rows) < 2:
+        raise ValueError('El fichero debe contener una fila de cabecera y al menos una fila de datos.')
+
+    # Algunos exportadores (p.ej. distribuidoras eléctricas) anteponen filas de
+    # metadatos (CUPS, fechas del periodo...) antes de la fila de cabecera real.
+    # Buscamos la primera fila que parezca cabecera (con columna de fecha y de hora).
+    def is_date_col(h):
+        return h in ('fecha', 'date', 'dia', 'day') or h.startswith('fecha_') or h.startswith('date_')
+
+    def is_hour_col(h):
+        return h in ('hora', 'time', 'periodo', 'period', 'hour') or h.startswith('hora_') or h.startswith('periodo_')
+
+    header_row_idx = None
+    headers = None
+    for i, row in enumerate(rows[:15]):
+        candidate = [normalize_header(v) for v in row]
+        if not any(candidate):
+            continue
+        has_date = any(h and is_date_col(h) for h in candidate)
+        has_hour = any(h and is_hour_col(h) for h in candidate)
+        has_value = any(h and ('consumo' in h or 'kwh' in h or 'energia' in h or 'valor' in h) for h in candidate)
+        if has_date and has_hour and has_value:
+            header_row_idx = i
+            headers = candidate
+            break
+    if header_row_idx is None:
+        for i, row in enumerate(rows[:15]):
+            candidate = [normalize_header(v) for v in row]
+            if not any(candidate):
+                continue
+            has_date = any(h and is_date_col(h) for h in candidate)
+            has_hour = any(h and is_hour_col(h) for h in candidate)
+            if has_date and has_hour:
+                header_row_idx = i
+                headers = candidate
+                break
+    if header_row_idx is None:
+        header_row_idx = 0
+        headers = [normalize_header(v) for v in rows[0]]
+    if not any(headers):
+        raise ValueError('No se ha encontrado una cabecera válida en el fichero.')
+
+    def find_header(keys):
+        for key in keys:
+            for idx, h in enumerate(headers):
+                if h and key in h:
+                    return idx
+        return None
+
+    datetime_idx = find_header(['fecha_hora', 'datetime', 'timestamp', 'fecha_y_hora', 'fecha_y_hora', 'fecha_y_hora', 'fecha_y_hora'])
+    date_idx = find_header(['fecha', 'date', 'dia', 'day'])
+    time_idx = find_header(['hora', 'time', 'periodo', 'period', 'hour'])
+    value_idx = find_header(['consumo', 'kwh', 'energia', 'energy', 'usage', 'valor'])
+    power_idx = find_header(['kw', 'potencia', 'power'])
+    duration_idx = find_header(['horas', 'duration', 'hours'])
+
+    # Detecta la unidad de la columna de consumo (Wh vs kWh) para normalizar a kWh.
+    value_unit_factor = 1.0
+    if value_idx is not None:
+        vh = headers[value_idx]
+        if 'kwh' in vh:
+            value_unit_factor = 1.0
+        elif 'wh' in vh:
+            value_unit_factor = 0.001
+
+    records = []
+    for row in rows[header_row_idx + 1:]:
+        if not any(cell not in (None, '') for cell in row):
+            continue
+        dt = None
+        if datetime_idx is not None and datetime_idx < len(row):
+            raw = row[datetime_idx]
+            if isinstance(raw, datetime):
+                dt = raw
+            elif isinstance(raw, (int, float)):
+                if xlrd and isinstance(raw, float):
+                    try:
+                        dt = datetime(*xlrd.xldate_as_tuple(raw, 0))
+                    except Exception:
+                        dt = None
+            elif isinstance(raw, str) and raw.strip():
+                try:
+                    dt = datetime.fromisoformat(raw.strip())
+                except Exception:
+                    for fmt in ['%d/%m/%Y %H:%M', '%d-%m-%Y %H:%M', '%Y-%m-%d %H:%M', '%d/%m/%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S']:
+                        try:
+                            dt = datetime.strptime(raw.strip(), fmt)
+                            break
+                        except ValueError:
+                            continue
+        row_date = None
+        if date_idx is not None and date_idx < len(row):
+            row_date = parse_date_value(row[date_idx])
+        row_time = None
+        if time_idx is not None and time_idx < len(row):
+            row_time = parse_time_value(row[time_idx])
+        if dt is None and row_date and row_time:
+            dt = datetime.combine(row_date, row_time)
+        if dt is None and row_date:
+            dt = datetime.combine(row_date, dtime(0, 0))
+
+        consumption = None
+        if value_idx is not None and value_idx < len(row):
+            consumption = parse_number(row[value_idx])
+            if consumption is not None:
+                consumption *= value_unit_factor
+        if consumption is None and power_idx is not None and power_idx < len(row):
+            power = parse_number(row[power_idx])
+            duration = None
+            if duration_idx is not None and duration_idx < len(row):
+                duration = parse_number(row[duration_idx])
+            if power is not None:
+                consumption = power * (duration if duration is not None else 1.0)
+        if consumption is None:
+            for cell in row:
+                num = parse_number(cell)
+                if num is not None:
+                    consumption = num
+                    break
+        if consumption is None:
+            continue
+
+        record_date = dt.date() if isinstance(dt, datetime) else row_date
+        if record_date is None:
+            continue
+
+        record_hour = dt.hour if isinstance(dt, datetime) else None
+        if record_hour is None and time_idx is not None and time_idx < len(row):
+            row_time = parse_time_value(row[time_idx])
+            if row_time is not None:
+                record_hour = row_time.hour
+
+        records.append({
+            'datetime': dt.isoformat() if isinstance(dt, datetime) else None,
+            'date': record_date.isoformat(),
+            'hour': record_hour,
+            'kwh': round(consumption, 6),
+        })
+
+    if not records:
+        raise ValueError('No se han podido extraer filas de consumo del fichero.')
+    return records
+
+@app.route('/api/consumption/upload', methods=['POST'])
+def upload_consumption():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Falta el fichero en la petición.'}), 400
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({'error': 'Falta el nombre del fichero.'}), 400
+    if not ESIOS_TOKEN:
+        return jsonify({'error': 'ESIOS_TOKEN no configurado en .env'}), 500
+    try:
+        rows = read_spreadsheet(f)
+        records = parse_consumption_rows(rows)
+        dates = sorted({r['date'] for r in records})
+        price_cache = {}
+        missing = []
+        for date_str in dates:
+            data = _fetch_esios(date_str)
+            if not data:
+                missing.append(date_str)
+            else:
+                price_cache[date_str] = data
+        if missing:
+            return jsonify({'error': f'No hay datos de precio ESIOS para estas fechas: {", ".join(missing)}'}), 400
+
+        total_kwh = 0.0
+        total_cost = 0.0
+        by_date = defaultdict(lambda: {'kwh': 0.0, 'cost': 0.0, 'avg_price': 0.0, 'rows': 0})
+        detail = []
+        for rec in records:
+            price_data = price_cache.get(rec['date'])
+            price = price_data['hours'].get(rec['hour']) if rec['hour'] is not None else price_data['avg']
+            if price is None:
+                price = price_data['avg']
+            cost = rec['kwh'] * price
+            total_kwh += rec['kwh']
+            total_cost += cost
+            entry = by_date[rec['date']]
+            entry['kwh'] += rec['kwh']
+            entry['cost'] += cost
+            entry['rows'] += 1
+            entry['avg_price'] += price
+            if len(detail) < 20:
+                detail.append({
+                    'datetime': rec['datetime'] or rec['date'],
+                    'kwh': rec['kwh'],
+                    'price': price,
+                    'cost': round(cost, 6),
+                })
+        dates_summary = []
+        for date_str in dates:
+            entry = by_date[date_str]
+            avg_price = entry['avg_price'] / entry['rows'] if entry['rows'] else price_cache[date_str]['avg']
+            dates_summary.append({
+                'date': date_str,
+                'kwh': round(entry['kwh'], 6),
+                'cost': round(entry['cost'], 6),
+                'avg_price': round(avg_price, 6),
+            })
+
+        return jsonify({
+            'file_name': f.filename,
+            'period_start': dates[0],
+            'period_end': dates[-1],
+            'rows': len(records),
+            'total_kwh': round(total_kwh, 6),
+            'total_cost': round(total_cost, 6),
+            'avg_price': round(total_cost / total_kwh, 6) if total_kwh else 0,
+            'dates': dates_summary,
+            'detail': detail,
+        })
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ── ESIOS: precios ────────────────────────────────────────────────────────────
 def _fetch_esios(date_str):
