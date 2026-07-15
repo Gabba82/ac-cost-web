@@ -183,6 +183,23 @@ button.danger:hover{background:var(--red);color:white;}
 .hist-date{color:var(--muted);font-size:12px;}
 .hist-cost{font-weight:600;color:var(--green);}
 .hist-detail{color:var(--muted);font-size:12px;}
+.upload-card .upload-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:.875rem;}
+.upload-card .upload-file{font-size:13px;font-weight:600;color:var(--text);}
+.upload-card .upload-period{font-size:12px;color:var(--muted);}
+.upload-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:.875rem;}
+@media(max-width:640px){.upload-metrics{grid-template-columns:1fr 1fr;}}
+.upload-metrics .metric{padding:.75rem .875rem;}
+.upload-metrics .metric-value{font-size:18px;}
+.upload-note{font-size:11px;color:var(--muted);margin-bottom:.75rem;line-height:1.5;}
+.upload-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rs);}
+.upload-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.upload-table thead th{position:sticky;top:0;background:var(--bg3);color:var(--muted);font-weight:600;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid var(--border);z-index:1;}
+.upload-table thead th:first-child{text-align:left;}
+.upload-table tbody td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text);}
+.upload-table tbody td:first-child{text-align:left;color:var(--muted);}
+.upload-table tbody tr:last-child td{border-bottom:none;}
+.upload-table tbody tr:hover td{background:var(--bg3);}
+.upload-table .cost-cell{font-weight:600;color:var(--amber);}
 .monthly-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;}
 .monthly-bar-wrap{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
 .monthly-bar{height:100%;background:var(--green);border-radius:4px;transition:width .3s;}
@@ -267,9 +284,17 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
         <input type="file" id="consumptionFile" accept=".xls,.xlsx,.csv,.txt" style="color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:5px;">
       </label>
+      <select id="uploadBonoSel" onchange="renderUploadResult()" style="width:auto;">
+        <option value="0">Sin bono social</option>
+        <option value="42.5">42,5% — Vulnerable (2026)</option>
+        <option value="57.5">57,5% — Vulnerable severo (2026)</option>
+        <option value="35">35% — Vulnerable (2027 est.)</option>
+        <option value="50">50% — Vulnerable severo (2027 est.)</option>
+        <option value="100">100% — Riesgo exclusión social</option>
+      </select>
       <button class="ghost" onclick="uploadConsumptionFile(this)" title="Subir fichero de consumo">📄 Calcular desde fichero</button>
     </div>
-    <div id="uploadResult" style="display:none;padding:10px 14px;border-radius:var(--rs);background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.12);font-size:12px;margin-top:10px;color:var(--text);"></div>
+    <div id="uploadResult" class="card upload-card" style="display:none;margin-top:10px;margin-bottom:0;"></div>
   </div>
   <div id="priceAlert" style="display:none;padding:8px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);font-size:12px;margin-bottom:1.25rem;"></div>
 
@@ -688,6 +713,7 @@ document.getElementById('optDate').value=today;
 // Aplicar tarifa y bono por defecto
 const bonoSel=document.getElementById('bonoSel');
 bonoSel.value=String(settings.bono_social_pct||42.5);
+document.getElementById('uploadBonoSel').value=String(settings.bono_social_pct||42.5);
 const defTarifa=settings.tarifa_defecto||'pvpc';
 const tarifaRadio=document.querySelector(`input[name="tarifa"][value="${defTarifa}"]`);
 if(tarifaRadio) tarifaRadio.checked=true;
@@ -1261,53 +1287,77 @@ document.addEventListener('click',e=>{
 });
 
 /* ── FICHERO DE CONSUMO ── */
+let lastUploadData=null;
 async function uploadConsumptionFile(btn){
   const inp=document.getElementById('consumptionFile');
   const resEl=document.getElementById('uploadResult');
   resEl.style.display='block';
   if(!inp.files||!inp.files.length){
-    resEl.style.color='var(--red)';
-    resEl.innerHTML='Selecciona antes un fichero de consumo (XLS, XLSX o CSV).';
+    lastUploadData=null;
+    resEl.innerHTML='<p style="color:var(--red);font-size:13px;">Selecciona antes un fichero de consumo (XLS, XLSX o CSV).</p>';
     return;
   }
   const origTxt=btn.innerHTML;
   btn.disabled=true;
   btn.innerHTML=spin('Calculando...');
-  resEl.style.color='var(--muted)';
-  resEl.innerHTML='Procesando fichero...';
+  resEl.innerHTML='<p style="color:var(--muted);font-size:13px;">Procesando fichero...</p>';
   try{
     const fd=new FormData();
     fd.append('file',inp.files[0]);
     const r=await fetch('/api/consumption/upload',{method:'POST',body:fd});
     const data=await r.json();
     if(!r.ok||data.error){
-      resEl.style.color='var(--red)';
-      resEl.innerHTML='❌ '+(data.error||'Error al procesar el fichero.');
+      lastUploadData=null;
+      resEl.innerHTML='<p style="color:var(--red);font-size:13px;">❌ '+(data.error||'Error al procesar el fichero.')+'</p>';
       return;
     }
-    const rowsHtml=data.dates.map(d=>
-      `<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-        <span style="color:var(--muted);">${d.date}</span>
-        <span>${fmt(d.kwh,2)} kWh</span>
-        <span style="color:var(--muted);">${fmt(d.avg_price*1000,2)} €/MWh</span>
-        <span style="font-weight:600;color:var(--amber);">${fmt(d.cost,2)} €</span>
-      </div>`).join('');
-    resEl.style.color='var(--text)';
-    resEl.innerHTML=`
-      <p style="margin-bottom:6px;"><strong>${data.file_name}</strong> · ${data.period_start} → ${data.period_end} · ${data.rows} registros</p>
-      <p style="margin-bottom:8px;">Total consumido: <strong style="color:var(--green);">${fmt(data.total_kwh,2)} kWh</strong> ·
-        Coste estimado (PVPC): <strong style="color:var(--amber);font-size:15px;">${fmt(data.total_cost,2)} €</strong> ·
-        Precio medio: ${fmt(data.avg_price*1000,2)} €/MWh</p>
-      <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Coste calculado con el precio horario PVPC real de cada día (sin impuestos ni bono social).</p>
-      <div style="max-height:280px;overflow-y:auto;">${rowsHtml}</div>
-    `;
+    lastUploadData=data;
+    renderUploadResult();
   }catch(e){
-    resEl.style.color='var(--red)';
-    resEl.innerHTML='❌ Error de red: '+e.message;
+    lastUploadData=null;
+    resEl.innerHTML='<p style="color:var(--red);font-size:13px;">❌ Error de red: '+e.message+'</p>';
   }finally{
     btn.disabled=false;
     btn.innerHTML=origTxt;
   }
+}
+function renderUploadResult(){
+  const data=lastUploadData;
+  const resEl=document.getElementById('uploadResult');
+  if(!data) return;
+  resEl.style.display='block';
+  const bono=parseFloat(document.getElementById('uploadBonoSel').value)||0;
+  const bruto=data.total_cost;
+  const final=bruto*(1-bono/100);
+  const ahorro=bruto-final;
+  const rowsHtml=data.dates.map(d=>{
+    const dFinal=d.cost*(1-bono/100);
+    return `<tr>
+      <td>${d.date}</td>
+      <td>${fmt(d.kwh,2)} kWh</td>
+      <td>${fmt(d.avg_price*1000,2)} €/MWh</td>
+      <td class="cost-cell">${fmt(dFinal,2)} €</td>
+    </tr>`;
+  }).join('');
+  resEl.innerHTML=`
+    <div class="upload-head">
+      <span class="upload-file">📄 ${data.file_name}</span>
+      <span class="upload-period">${data.period_start} → ${data.period_end} · ${data.rows} registros</span>
+    </div>
+    <div class="upload-metrics">
+      <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value">${fmt(bruto,2)} €</p><p class="metric-sub">término energía</p></div>
+      <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(ahorro,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
+      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${bono?'con bono social':'sin bono'}</p></div>
+      <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value">${fmt(data.total_kwh,2)}</p><p class="metric-sub">${fmt(data.avg_price*1000,2)} €/MWh medio</p></div>
+    </div>
+    <p class="upload-note">Coste calculado con el precio horario PVPC real de cada día del periodo (sin impuestos ni término de potencia)${bono?', con el descuento de bono social aplicado.':'.'}</p>
+    <div class="upload-scroll">
+      <table class="upload-table">
+        <thead><tr><th>Fecha</th><th>Consumo</th><th>Precio medio</th><th>Coste${bono?' (con bono)':''}</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 /* ── PDF ── */
