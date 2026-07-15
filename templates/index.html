@@ -294,6 +294,14 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
       </select>
       <button class="ghost" onclick="uploadConsumptionFile(this)" title="Subir fichero de consumo">📄 Calcular desde fichero</button>
     </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);">
+        <input type="radio" name="uploadTarifa" value="pvpc" checked onchange="renderUploadResult()" style="accent-color:var(--green);"> PVPC (solo energía)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);">
+        <input type="radio" name="uploadTarifa" value="2otd" onchange="renderUploadResult()" style="accent-color:var(--amber);"> PVPC 2.0TD (con impuestos y potencia)
+      </label>
+    </div>
     <div id="uploadResult" class="card upload-card" style="display:none;margin-top:10px;margin-bottom:0;"></div>
   </div>
   <div id="priceAlert" style="display:none;padding:8px 14px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);font-size:12px;margin-bottom:1.25rem;"></div>
@@ -1327,18 +1335,54 @@ function renderUploadResult(){
   if(!data) return;
   resEl.style.display='block';
   const bono=parseFloat(document.getElementById('uploadBonoSel').value)||0;
+  const tarifa=document.querySelector('input[name="uploadTarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
+  const IMP_ELEC=0.0511269632, IVA=0.21;
+  const TERM_POT_MES=5.75*(2.375388+0.080738); // 5,75 kW P1+P2, igual que la calculadora principal
+
   const bruto=data.total_cost;
-  const final=bruto*(1-bono/100);
-  const ahorro=bruto-final;
-  const rowsHtml=data.dates.map(d=>{
-    const dFinal=d.cost*(1-bono/100);
-    return `<tr>
+  const brutoConBono=bruto*(1-bono/100);
+  const ahorroBono=bruto-brutoConBono;
+
+  const dayMs=24*60*60*1000;
+  const dias=Math.max(1,Math.round((new Date(data.period_end)-new Date(data.period_start))/dayMs)+1);
+  const termPot=is2otd?TERM_POT_MES*(dias/30):0;
+
+  let impElec=0,iva=0,final;
+  if(is2otd){
+    impElec=brutoConBono*IMP_ELEC;
+    const subtotal=brutoConBono+impElec;
+    iva=subtotal*IVA;
+    final=subtotal+iva+termPot;
+  } else {
+    final=brutoConBono;
+  }
+
+  const rowCost=c=>{
+    let v=c*(1-bono/100);
+    if(is2otd) v=v*(1+IMP_ELEC)*(1+IVA);
+    return v;
+  };
+  const rowsHtml=data.dates.map(d=>
+    `<tr>
       <td>${d.date}</td>
       <td>${fmt(d.kwh,2)} kWh</td>
       <td>${fmt(d.avg_price*1000,2)} €/MWh</td>
-      <td class="cost-cell">${fmt(dFinal,2)} €</td>
-    </tr>`;
-  }).join('');
+      <td class="cost-cell">${fmt(rowCost(d.cost),2)} €</td>
+    </tr>`).join('');
+
+  const extraMetrics=is2otd?`
+    <div class="upload-metrics" style="margin-bottom:.75rem;">
+      <div class="metric"><p class="metric-label">Imp. eléctrico (5,11%)</p><p class="metric-value">${fmt(impElec,2)} €</p><p class="metric-sub">sobre energía</p></div>
+      <div class="metric"><p class="metric-label">IVA (21%)</p><p class="metric-value">${fmt(iva,2)} €</p><p class="metric-sub">sobre subtotal</p></div>
+      <div class="metric"><p class="metric-label">Término potencia</p><p class="metric-value">${fmt(termPot,2)} €</p><p class="metric-sub">${dias} días · 5,75 kW P1+P2</p></div>
+      <div class="metric"><p class="metric-label">Periodo</p><p class="metric-value">${dias} d</p><p class="metric-sub">prorrateo potencia</p></div>
+    </div>`:'';
+
+  const nota=is2otd
+    ? `Coste calculado con el precio horario PVPC real de cada día, más impuesto eléctrico (5,11%), IVA (21%) y término de potencia fijo prorrateado (5,75 kW P1+P2, ${dias} días)${bono?', con el descuento de bono social aplicado sobre la energía':''}. Es una aproximación a tu factura real: puede variar si tu potencia contratada es distinta.`
+    : `Coste calculado solo con el precio horario PVPC de la energía (sin impuestos ni término de potencia)${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para aproximarlo a tu factura real.`;
+
   resEl.innerHTML=`
     <div class="upload-head">
       <span class="upload-file">📄 ${data.file_name}</span>
@@ -1346,14 +1390,15 @@ function renderUploadResult(){
     </div>
     <div class="upload-metrics">
       <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value">${fmt(bruto,2)} €</p><p class="metric-sub">término energía</p></div>
-      <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(ahorro,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
-      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${bono?'con bono social':'sin bono'}</p></div>
+      <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(ahorroBono,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
+      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${is2otd?'con impuestos y potencia':(bono?'con bono social':'sin bono')}</p></div>
       <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value">${fmt(data.total_kwh,2)}</p><p class="metric-sub">${fmt(data.avg_price*1000,2)} €/MWh medio</p></div>
     </div>
-    <p class="upload-note">Coste calculado con el precio horario PVPC real de cada día del periodo (sin impuestos ni término de potencia)${bono?', con el descuento de bono social aplicado.':'.'}</p>
+    ${extraMetrics}
+    <p class="upload-note">${nota}</p>
     <div class="upload-scroll">
       <table class="upload-table">
-        <thead><tr><th>Fecha</th><th>Consumo</th><th>Precio medio</th><th>Coste${bono?' (con bono)':''}</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Consumo</th><th>Precio medio</th><th>Coste${bono||is2otd?' (ajustado)':''}</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
