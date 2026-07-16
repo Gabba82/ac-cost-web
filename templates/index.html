@@ -487,7 +487,7 @@ footer{text-align:center;font-size:11px;color:var(--muted);margin-top:2rem;}
     <p class="card-title">Estimación del mes actual</p>
     <div class="metrics" style="margin-bottom:1rem;">
       <div class="metric hl-amber"><p class="metric-label">Coste bruto mes</p><p class="metric-value" id="mthBruto">—</p><p class="metric-sub">estimación</p></div>
-      <div class="metric hl"><p class="metric-label">Con bono social</p><p class="metric-value" id="mthFinal">—</p><p class="metric-sub" id="mthBonoPct">—</p></div>
+      <div class="metric hl"><p class="metric-label">Con bono social + IVA</p><p class="metric-value" id="mthFinal">—</p><p class="metric-sub" id="mthBonoPct">—</p></div>
       <div class="metric"><p class="metric-label">kWh estimados</p><p class="metric-value" id="mthKwh">—</p><p class="metric-sub">en el mes</p></div>
       <div class="metric"><p class="metric-label">Coste diario medio</p><p class="metric-value" id="mthDaily">—</p><p class="metric-sub">€/día</p></div>
     </div>
@@ -919,13 +919,13 @@ function compute(){
   const totalHrs=activeTab==='botones'?selHrs.size:franjas.reduce((s,f)=>{const d=timeToH(f.desde),h=timeToH(f.hasta);return s+(h>d?h-d:0);},0);
   const termPotProrrateado=TERM_POT_MES*(totalHrs/720); // 720h = mes promedio
 
-  const final=is2otd?totalImp:brutoConBono;
+  const final=is2otd?totalImp:brutoConBono*(1+IVA);
 
   document.getElementById('mBruto').textContent=bruto>0?fmt(bruto,3)+' €':'—';
   document.getElementById('mAhorro').textContent=ahorro>0?'-'+fmt(ahorro,3)+' €':'—';
   document.getElementById('mAhorroPct').textContent=bono>0?bono+'% bono':'sin descuento';
   document.getElementById('mFinal').textContent=bruto>0?fmt(final,3)+' €':'—';
-  document.getElementById('mFinalSub').textContent=is2otd?'con imp. incluidos':'con bono';
+  document.getElementById('mFinalSub').textContent=is2otd?'con imp. incluidos':'con bono + IVA';
   document.getElementById('mKwh').textContent=kwh>0?fmt(kwh,2)+' kWh':'—';
 
   // Panel 2.0TD
@@ -1054,7 +1054,7 @@ async function runCompare(){
       div.innerHTML=`<p style="font-size:11px;color:var(--muted);margin-bottom:4px;">${isW?'✅ MÁS BARATO':''}</p>
         <p style="font-size:16px;font-weight:600;margin-bottom:8px;">${date}</p>
         <p style="font-size:24px;font-weight:700;color:${isW?'var(--green)':'var(--muted)'};">${fmt(cost,3)} €</p>
-        <p style="font-size:12px;color:var(--muted);margin-top:4px;">con bono: ${fmt(cost*(1-bono/100),3)} €</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;">con bono + IVA: ${fmt(cost*(1-bono/100)*(1+0.21),3)} €</p>
         <p style="font-size:12px;color:var(--muted);">media ${fmt(Object.values(pm).reduce((a,b)=>a+b,0)/Object.keys(pm).length*1000,2)} €/MWh</p>`;
       cards.appendChild(div);
     });
@@ -1106,18 +1106,18 @@ async function runOptimal(){
     const IMP_ELEC=0.0511269632, IVA=0.21;
     const applyTarifa=c=>{
       const conBono=c*(1-bono/100);
-      if(!is2otd) return conBono;
+      if(!is2otd) return conBono*(1+IVA);
       return conBono*(1+IMP_ELEC)*(1+IVA);
     };
     const rows=document.getElementById('optimalRows'); rows.innerHTML='';
-    document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h · ${is2otd?'2.0TD c/imp.':'PVPC'}`;
+    document.getElementById('optKwLabel').textContent=`· ${fmt(kw,2)} kW · ${fmt(dur,2)} h · ${is2otd?'2.0TD c/imp.':'PVPC c/IVA'}`;
     results.slice(0,top).forEach((r,i)=>{
       const tI=`${String(Math.floor(r.start)).padStart(2,'0')}:${String(Math.round((r.start%1)*60)).padStart(2,'0')}`;
       const tF=`${String(Math.floor(r.end)).padStart(2,'0')}:${String(Math.round((r.end%1)*60)).padStart(2,'0')}`;
       const costeFinal=applyTarifa(r.coste);
       const div=document.createElement('div');div.className='optimal-row'+(i===0?' best':'');
       div.innerHTML=`<span>${['🥇','🥈','🥉','4º','5º','6º','7º','8º','9º','10º'][i]} ${tI} → ${tF}</span>
-        <span>${fmt(costeFinal,3)} €${is2otd?' (c/imp.)':bono>0?' (c/bono)':''}</span>
+        <span>${fmt(costeFinal,3)} €${is2otd?' (c/imp.)':bono>0?' (c/bono+IVA)':' (c/IVA)'}</span>
         <span style="color:var(--muted);font-size:12px;">${fmt(r.kwh,2)} kWh</span>`;
       rows.appendChild(div);
     });
@@ -1160,8 +1160,9 @@ async function runMonthly(){
       dayResults.push({day,dow,hrs,cost,avg});
     }
     const maxCost=Math.max(...dayResults.map(x=>x.cost));
+    const IVA=0.21;
     document.getElementById('mthBruto').textContent=fmt(totalBruto,2)+' €';
-    document.getElementById('mthFinal').textContent=fmt(totalBruto*(1-bono/100),2)+' €';
+    document.getElementById('mthFinal').textContent=fmt(totalBruto*(1-bono/100)*(1+IVA),2)+' €';
     document.getElementById('mthBonoPct').textContent=bono>0?bono+'% bono':'sin descuento';
     document.getElementById('mthKwh').textContent=fmt(totalKwh,1)+' kWh';
     document.getElementById('mthDaily').textContent=fmt(totalBruto/daysInMonth,3)+' €';
@@ -1209,7 +1210,11 @@ async function saveToHistory(){
   else{franjas.forEach(f=>{bruto+=costSegmento(timeToH(f.desde),timeToH(f.hasta),kw).coste;});}
   if(bruto===0){alert('No hay nada que guardar. Selecciona horas y aparatos primero.');return;}
   const hrsLabel=activeTab==='botones'?`${selHrs.size}h`:`${franjas.length} franja${franjas.length!==1?'s':''}`;
-  const entry={date:document.getElementById('datePicker').value,bruto,final:bruto*(1-bono/100),bono,kw,hrs:hrsLabel};
+  const tarifa=document.querySelector('input[name="tarifa"]:checked')?.value||'pvpc';
+  const is2otd=tarifa==='2otd';
+  const brutoConBono=bruto*(1-bono/100);
+  const final=is2otd?brutoConBono*(1+0.0511269632)*(1+0.21):brutoConBono*(1+0.21);
+  const entry={date:document.getElementById('datePicker').value,bruto,final,bono,kw,hrs:hrsLabel};
   try{
     await fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});
     showBanner('💾 Guardado en historial');
@@ -1370,7 +1375,9 @@ function renderUploadResult(){
     final=subtotal+iva;
   } else {
     descuentoBono=energia*(bono/100);
-    final=energia-descuentoBono;
+    const energiaConBono=energia-descuentoBono;
+    iva=energiaConBono*UPLOAD_IVA;
+    final=energiaConBono+iva;
   }
 
   const rowsHtml=data.dates.map(d=>
@@ -1393,11 +1400,19 @@ function renderUploadResult(){
         <div class="optimal-row"><span>IVA (21%)</span><span>${fmt(iva,2)} €</span></div>
         <div class="optimal-row best"><span>Total factura estimada</span><span>${fmt(final,2)} €</span></div>
       </div>
-    </div>`:'';
+    </div>`:`
+    <div class="upload-scroll" style="margin-bottom:.875rem;">
+      <div style="padding:2px 12px;">
+        <div class="optimal-row"><span>Energía consumida (${fromFile?'coste real fichero':'PVPC ESIOS'})</span><span>${fmt(energia,2)} €</span></div>
+        <div class="optimal-row" style="color:var(--green);"><span>Descuento bono social (${bono||0}%)</span><span>${bono?'-'+fmt(descuentoBono,2)+' €':'—'}</span></div>
+        <div class="optimal-row"><span>IVA (21%)</span><span>${fmt(iva,2)} €</span></div>
+        <div class="optimal-row best"><span>Total (sin potencia ni otros cargos)</span><span>${fmt(final,2)} €</span></div>
+      </div>
+    </div>`;
 
   const nota=is2otd
     ? `Desglose calculado replicando la fórmula oficial de la factura 2.0TD (potencia con margen de comercialización, bono social sobre potencia+energía+varios, impuesto eléctrico, alquiler de contador e IVA), usando el ${fuentePrecio}. Asume ${UPLOAD_POTENCIA_KW} kW de potencia contratada — ajústalo si la tuya es distinta. Los peajes de la potencia son los vigentes en 2026 y pueden cambiar cada año.`
-    : `Coste calculado con el ${fuentePrecio}, sin potencia ni impuestos${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para ver la estimación completa de factura.`;
+    : `Coste calculado con el ${fuentePrecio} más IVA (21%)${bono?', con el descuento de bono social aplicado':''}, sin potencia contratada ni el resto de cargos fijos de la factura (alquiler contador, financiación bono social). Activa "PVPC 2.0TD" para ver la estimación completa de factura.`;
 
   resEl.innerHTML=`
     <div class="upload-head">
@@ -1407,7 +1422,7 @@ function renderUploadResult(){
     <div class="upload-metrics">
       <div class="metric"><p class="metric-label">Coste energía</p><p class="metric-value">${fmt(energia,2)} €</p><p class="metric-sub">término energía</p></div>
       <div class="metric"><p class="metric-label">Ahorro bono</p><p class="metric-value" style="color:var(--green);">${bono?fmt(descuentoBono,2)+' €':'—'}</p><p class="metric-sub">${bono?bono+'%':'sin bono'}</p></div>
-      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${is2otd?'factura estimada':(bono?'con bono social':'sin bono')}</p></div>
+      <div class="metric hl"><p class="metric-label">Coste final</p><p class="metric-value">${fmt(final,2)} €</p><p class="metric-sub">${is2otd?'factura estimada':(bono?'con bono social + IVA':'con IVA')}</p></div>
       <div class="metric"><p class="metric-label">kWh totales</p><p class="metric-value">${fmt(data.total_kwh,2)}</p><p class="metric-sub">${fmt(data.avg_price*1000,2)} €/MWh medio</p></div>
     </div>
     ${breakdown}
@@ -1449,7 +1464,8 @@ function exportPDF(){
   const subtotal=brutoConBono+impElec;
   const iva=subtotal*IVA;
   const totalImp=subtotal+iva;
-  const finalCost=is2otd?totalImp:brutoConBono;
+  const pvpcConIva=brutoConBono*(1+IVA);
+  const finalCost=is2otd?totalImp:pvpcConIva;
   const date=document.getElementById('datePicker').value;
   const aparatos=MACHINES.filter(m=>state[m.id].active).map(m=>`${m.label} (${state[m.id].mode})`)
     .concat(EXTRAS.filter(e=>extraState[e.id].active).map(e=>`${e.label} ${fmt(extraState[e.id].kw,2)}kW`)).join(', ')||'—';
@@ -1504,7 +1520,7 @@ function exportPDF(){
     <h1>⚡ Informe de consumo eléctrico</h1>
     <p>Fecha de análisis: <strong>${date}</strong> · Generado el ${new Date().toLocaleString('es-ES')}</p>
   </div>
-  <span class="badge">${is2otd?'PVPC 2.0TD':'PVPC'}</span>
+  <span class="badge">${is2otd?'PVPC 2.0TD':'PVPC + IVA'}</span>
 </div>
 
 <div class="grid2">
@@ -1542,12 +1558,18 @@ ${is2otd?`
   <tr><td>IVA (21%)</td><td>${fmt(iva,4)} €</td></tr>
   <tr class="total"><td><strong>Total con impuestos</strong></td><td><strong>${fmt(totalImp,3)} €</strong></td></tr>
   <tr><td style="color:#aaa;font-size:12px;">Término de potencia (fijo mensual, no incluido)</td><td style="color:#aaa;font-size:12px;">${fmt(TERM_POT_MES,3)} €/mes</td></tr>
-</table>`:''}
+</table>`:`
+<p class="section-title">Desglose (tarifa PVPC)</p>
+<table class="fiscal-table">
+  <tr><td>Término de energía (con bono ${bono}%)</td><td>${fmt(brutoConBono,4)} €</td></tr>
+  <tr><td>IVA (21%)</td><td>${fmt(brutoConBono*IVA,4)} €</td></tr>
+  <tr class="total"><td><strong>Total con IVA</strong></td><td><strong>${fmt(pvpcConIva,3)} €</strong></td></tr>
+</table>`}
 
 <div class="box green" style="margin-top:1.5rem;">
   <p class="box-title">Coste final estimado</p>
   <p class="box-val" style="font-size:28px;">${fmt(finalCost,3)} €</p>
-  <p class="box-sub">${is2otd?'Incluye impuesto eléctrico e IVA, sin término potencia':'Término de energía con bono social'}</p>
+  <p class="box-sub">${is2otd?'Incluye impuesto eléctrico e IVA, sin término potencia':'Energía con bono social e IVA'}</p>
 </div>
 
 ${parts.length?`
@@ -1664,7 +1686,7 @@ function applyBudget(){
   const is2otd=tarifa==='2otd';
   const bono=parseFloat(document.getElementById('bonoSel').value)||0;
   const IMP_ELEC=0.0511269632, IVA=0.21;
-  const costH=p=>{ let c=kw*p*(1-bono/100); if(is2otd) c=c*(1+IMP_ELEC)*(1+IVA); return c; };
+  const costH=p=>{ let c=kw*p*(1-bono/100); return is2otd?c*(1+IMP_ELEC)*(1+IVA):c*(1+IVA); };
   const sorted=Object.entries(prices).map(([h,p])=>({h:+h,p,c:costH(p)})).sort((a,b)=>a.c-b.c);
   selHrs.clear();
   let acum=0;
@@ -1672,7 +1694,7 @@ function applyBudget(){
     if(acum+c>budget) break;
     selHrs.add(h); acum+=c;
   }
-  const label=is2otd?'c/imp.':'energía';
+  const label=is2otd?'c/imp.':'c/IVA';
   document.getElementById('budgetResult').textContent=
     selHrs.size>0
       ? `${selHrs.size} horas seleccionadas · coste estimado: ${acum.toFixed(3).replace('.',',')} € (${label})`
@@ -1730,7 +1752,7 @@ async function loadAhora(){
     allMachines.forEach(m=>{
       if(!p) return;
       let cost=m.kw*p*(1-bono/100);
-      if(is2otd) cost=cost*(1+0.0511269632)*(1+0.21);
+      cost=is2otd?cost*(1+0.0511269632)*(1+0.21):cost*(1+0.21);
       const div=document.createElement('div');div.className='ahora-machine';
       const diffM=p?((p-avg)/avg*100):0;
       const badge=diffM<=-5?'<span class="badge-barato">barato</span>':diffM>=15?'<span class="badge-caro">caro</span>':'<span class="badge-normal">normal</span>';
