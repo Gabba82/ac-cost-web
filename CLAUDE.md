@@ -102,8 +102,24 @@ Gotchas ya resueltos, por si se rompe con otro formato de fichero:
 - **Unidades Wh vs kWh** — la columna de consumo puede venir en Wh (mira el
   header, p.ej. "Consumo (Wh)"). Se detecta por el nombre normalizado de la
   columna y se convierte a kWh (`value_unit_factor`).
-- La columna "Hora" suele venir como rango `"00:00-01:00"` — se coge el inicio
-  del rango como la hora.
+- La columna "Hora" tiene **dos formatos vistos hasta ahora** en exports de la
+  misma distribuidora, y hay que soportar ambos (`parse_hour_label()`):
+  - Rango `"00:00-01:00"` → se coge el inicio del rango, sin desplazamiento.
+  - Etiqueta numérica `1..24` ("hora que termina en") → `hour_of_day = label-1`.
+    **La etiqueta 24 viene con la fecha del día SIGUIENTE** (es la costumbre
+    de este exportador: la hora 23:00-24:00 de un día se guarda con la fecha
+    de mañana). Si no se corrige, el periodo detectado sale un día más largo
+    de lo real y se infla la potencia/alquiler/financiación bono social
+    prorrateados — nos pasó: factura real 29 días pero el fichero parecía
+    cubrir 30, con un descuadre de 0,25€ en el total. La corrección resta un
+    día a la fecha cuando la etiqueta es 24.
+- **Si el fichero trae columna de coste ya calculado** (p.ej. "Coste por hora
+  (€)") con valores reales (no todo 0.0), se usa directamente como coste de
+  la energía en vez de recalcular con ESIOS — es más preciso (coincide al
+  céntimo con "Facturación por energía consumida" de la factura real) y no
+  requiere `ESIOS_TOKEN`. Solo se cae a ESIOS si esa columna no existe o está
+  toda a cero (algunos exports la traen vacía). Ver `file_has_cost` en
+  `upload_consumption()`.
 - Puede haber una fila de totales al final (`"Total (Wh): , 517319.0"`) — se
   descarta sola porque no tiene fecha parseable.
 
