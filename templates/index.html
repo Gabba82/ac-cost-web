@@ -1347,7 +1347,11 @@ function renderUploadResult(){
   const tarifa=document.querySelector('input[name="uploadTarifa"]:checked')?.value||'pvpc';
   const is2otd=tarifa==='2otd';
 
-  const energia=data.total_cost; // ya incluye peajes de energía (indicador PVPC de ESIOS)
+  const energia=data.total_cost;
+  const fromFile=data.price_source==='fichero';
+  const fuentePrecio=fromFile
+    ? 'coste horario real de tu distribuidora (incluido en el fichero)'
+    : 'precio PVPC horario de ESIOS (peajes de energía incluidos)';
   const dayMs=24*60*60*1000;
   const dias=Math.max(1,Math.round((new Date(data.period_end)-new Date(data.period_start))/dayMs)+1);
 
@@ -1381,7 +1385,7 @@ function renderUploadResult(){
     <div class="upload-scroll" style="margin-bottom:.875rem;">
       <div style="padding:2px 12px;">
         <div class="optimal-row"><span>Potencia contratada (${UPLOAD_POTENCIA_KW} kW · peajes+margen, ${dias} días)</span><span>${fmt(potencia,2)} €</span></div>
-        <div class="optimal-row"><span>Energía consumida (PVPC, peajes incluidos)</span><span>${fmt(energia,2)} €</span></div>
+        <div class="optimal-row"><span>Energía consumida (${fromFile?'coste real fichero':'PVPC ESIOS'})</span><span>${fmt(energia,2)} €</span></div>
         <div class="optimal-row"><span>Financiación bono social (${dias} días)</span><span>${fmt(varios,2)} €</span></div>
         <div class="optimal-row" style="color:var(--green);"><span>Descuento bono social (${bono||0}%)</span><span>${bono?'-'+fmt(descuentoBono,2)+' €':'—'}</span></div>
         <div class="optimal-row"><span>Impuesto eléctrico (5,11%)</span><span>${fmt(impElec,2)} €</span></div>
@@ -1392,8 +1396,8 @@ function renderUploadResult(){
     </div>`:'';
 
   const nota=is2otd
-    ? `Desglose calculado replicando la fórmula oficial de la factura 2.0TD (potencia con margen de comercialización, bono social sobre potencia+energía+varios, impuesto eléctrico, alquiler de contador e IVA). Asume ${UPLOAD_POTENCIA_KW} kW de potencia contratada — ajústalo si la tuya es distinta. Los peajes de la potencia son los vigentes en 2026 y pueden cambiar cada año.`
-    : `Coste calculado solo con el precio horario PVPC de la energía (peajes de energía incluidos, sin potencia ni impuestos)${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para ver la estimación completa de factura.`;
+    ? `Desglose calculado replicando la fórmula oficial de la factura 2.0TD (potencia con margen de comercialización, bono social sobre potencia+energía+varios, impuesto eléctrico, alquiler de contador e IVA), usando el ${fuentePrecio}. Asume ${UPLOAD_POTENCIA_KW} kW de potencia contratada — ajústalo si la tuya es distinta. Los peajes de la potencia son los vigentes en 2026 y pueden cambiar cada año.`
+    : `Coste calculado con el ${fuentePrecio}, sin potencia ni impuestos${bono?', con el descuento de bono social aplicado':''}. Activa "PVPC 2.0TD" para ver la estimación completa de factura.`;
 
   resEl.innerHTML=`
     <div class="upload-head">

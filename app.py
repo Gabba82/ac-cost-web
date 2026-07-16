@@ -301,6 +301,28 @@ def parse_time_value(value):
             return parse_time_value(parts[0])
     return None
 
+def parse_hour_label(value):
+    """Devuelve (hora_del_dia 0-23, desplazamiento_dias) a partir de la columna
+    'Hora'. Soporta rangos 'HH:MM-HH:MM' (se coge el inicio) y la convención de
+    etiqueta numérica 1-24 que usan algunos exportadores de distribuidora,
+    donde la etiqueta 24 representa las 23:00-24:00 del día ANTERIOR a la
+    fecha que aparece en esa fila del fichero (hay que restar un día)."""
+    if value is None or value == "":
+        return None, 0
+    s = str(value).strip()
+    if ':' in s:
+        t = parse_time_value(s)
+        return (t.hour, 0) if t else (None, 0)
+    n = parse_number(s)
+    if n is not None and 1 <= n <= 24:
+        label = int(round(n))
+        if label == 24:
+            return 23, -1
+        if 1 <= label <= 23:
+            return label - 1, 0
+    t = parse_time_value(s)
+    return (t.hour, 0) if t else (None, 0)
+
 def read_spreadsheet(file_storage):
     filename = file_storage.filename or ''
     ext = os.path.splitext(filename)[1].lower()
@@ -425,6 +447,7 @@ def parse_consumption_rows(rows):
     value_idx = find_header(['consumo', 'kwh', 'energia', 'energy', 'usage', 'valor'])
     power_idx = find_header(['kw', 'potencia', 'power'])
     duration_idx = find_header(['horas', 'duration', 'hours'])
+    cost_idx = find_header(['coste_por_hora', 'importe', 'coste'])
 
     # Detecta la unidad de la columna de consumo (Wh vs kWh) para normalizar a kWh.
     value_unit_factor = 1.0
@@ -463,11 +486,13 @@ def parse_consumption_rows(rows):
         row_date = None
         if date_idx is not None and date_idx < len(row):
             row_date = parse_date_value(row[date_idx])
-        row_time = None
+        row_hour, day_offset = (None, 0)
         if time_idx is not None and time_idx < len(row):
-            row_time = parse_time_value(row[time_idx])
-        if dt is None and row_date and row_time:
-            dt = datetime.combine(row_date, row_time)
+            row_hour, day_offset = parse_hour_label(row[time_idx])
+        if row_date is not None and day_offset:
+            row_date = row_date + timedelta(days=day_offset)
+        if dt is None and row_date and row_hour is not None:
+            dt = datetime.combine(row_date, dtime(row_hour, 0))
         if dt is None and row_date:
             dt = datetime.combine(row_date, dtime(0, 0))
 
@@ -496,17 +521,18 @@ def parse_consumption_rows(rows):
         if record_date is None:
             continue
 
-        record_hour = dt.hour if isinstance(dt, datetime) else None
-        if record_hour is None and time_idx is not None and time_idx < len(row):
-            row_time = parse_time_value(row[time_idx])
-            if row_time is not None:
-                record_hour = row_time.hour
+        record_hour = dt.hour if isinstance(dt, datetime) else row_hour
+
+        record_cost = None
+        if cost_idx is not None and cost_idx < len(row):
+            record_cost = parse_number(row[cost_idx])
 
         records.append({
             'datetime': dt.isoformat() if isinstance(dt, datetime) else None,
             'date': record_date.isoformat(),
             'hour': record_hour,
             'kwh': round(consumption, 6),
+            'cost': record_cost,
         })
 
     if not records:
@@ -520,33 +546,47 @@ def upload_consumption():
     f = request.files['file']
     if not f or not f.filename:
         return jsonify({'error': 'Falta el nombre del fichero.'}), 400
-    if not ESIOS_TOKEN:
-        return jsonify({'error': 'ESIOS_TOKEN no configurado en .env'}), 500
     try:
         rows = read_spreadsheet(f)
         records = parse_consumption_rows(rows)
         dates = sorted({r['date'] for r in records})
+
+        # Si el propio fichero trae el coste horario ya calculado por la
+        # distribuidora (columna "Coste por hora"), lo usamos directamente:
+        # es más preciso que reconstruirlo con el precio PVPC de ESIOS (evita
+        # desajustes de redondeo/alineación horaria) y no requiere ESIOS_TOKEN.
+        # Algunos exportadores rellenan esa columna a 0.0 para todas las filas
+        # (sin datos de precio reales) — en ese caso caemos a ESIOS.
+        file_has_cost = any(r.get('cost') not in (None, 0, 0.0) for r in records)
+
         price_cache = {}
-        missing = []
-        for date_str in dates:
-            data = _fetch_esios(date_str)
-            if not data:
-                missing.append(date_str)
-            else:
-                price_cache[date_str] = data
-        if missing:
-            return jsonify({'error': f'No hay datos de precio ESIOS para estas fechas: {", ".join(missing)}'}), 400
+        if not file_has_cost:
+            if not ESIOS_TOKEN:
+                return jsonify({'error': 'ESIOS_TOKEN no configurado en .env'}), 500
+            missing = []
+            for date_str in dates:
+                data = _fetch_esios(date_str)
+                if not data:
+                    missing.append(date_str)
+                else:
+                    price_cache[date_str] = data
+            if missing:
+                return jsonify({'error': f'No hay datos de precio ESIOS para estas fechas: {", ".join(missing)}'}), 400
 
         total_kwh = 0.0
         total_cost = 0.0
         by_date = defaultdict(lambda: {'kwh': 0.0, 'cost': 0.0, 'avg_price': 0.0, 'rows': 0})
         detail = []
         for rec in records:
-            price_data = price_cache.get(rec['date'])
-            price = price_data['hours'].get(rec['hour']) if rec['hour'] is not None else price_data['avg']
-            if price is None:
-                price = price_data['avg']
-            cost = rec['kwh'] * price
+            if file_has_cost:
+                cost = rec['cost'] or 0.0
+                price = cost / rec['kwh'] if rec['kwh'] else 0.0
+            else:
+                price_data = price_cache.get(rec['date'])
+                price = price_data['hours'].get(rec['hour']) if rec['hour'] is not None else price_data['avg']
+                if price is None:
+                    price = price_data['avg']
+                cost = rec['kwh'] * price
             total_kwh += rec['kwh']
             total_cost += cost
             entry = by_date[rec['date']]
@@ -564,7 +604,12 @@ def upload_consumption():
         dates_summary = []
         for date_str in dates:
             entry = by_date[date_str]
-            avg_price = entry['avg_price'] / entry['rows'] if entry['rows'] else price_cache[date_str]['avg']
+            if entry['rows']:
+                avg_price = entry['avg_price'] / entry['rows']
+            elif entry['kwh']:
+                avg_price = entry['cost'] / entry['kwh']
+            else:
+                avg_price = 0
             dates_summary.append({
                 'date': date_str,
                 'kwh': round(entry['kwh'], 6),
@@ -582,6 +627,7 @@ def upload_consumption():
             'avg_price': round(total_cost / total_kwh, 6) if total_kwh else 0,
             'dates': dates_summary,
             'detail': detail,
+            'price_source': 'fichero' if file_has_cost else 'esios',
         })
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
