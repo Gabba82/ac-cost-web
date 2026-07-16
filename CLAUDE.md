@@ -87,6 +87,18 @@ La potencia contratada está hardcodeada en `UPLOAD_POTENCIA_KW = 5.75` (kW,
 igual en P1 y P3). Si el usuario cambia de potencia contratada, hay que
 actualizar esa constante.
 
+### Modo tarifa "PVPC" (sin 2.0TD) — sí lleva IVA
+
+Todos los cálculos tienen un selector de tarifa PVPC / PVPC 2.0TD. El modo
+2.0TD aplica el desglose completo de arriba. El modo "PVPC" a secas sigue
+siendo una herramienta de coste marginal (no incluye potencia, impuesto
+eléctrico, alquiler de contador ni financiación bono social), **pero sí
+aplica el IVA (21%)** sobre el término de energía con bono ya descontado —
+antes no lo llevaba y mostraba un precio que no correspondía a lo que
+realmente se paga. Patrón repetido en cada sitio que calcula un coste:
+`is2otd ? (fórmula completa 2.0TD) : brutoConBono*(1+0.21)`. Si se añade un
+nuevo sitio que muestre un coste en modo PVPC, seguir este mismo patrón.
+
 ## Subida de ficheros de consumo (`/api/consumption/upload`)
 
 Parsea CSV/XLS/XLSX exportados por la distribuidora (formato tipo e-distribución).
